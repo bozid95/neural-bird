@@ -30,6 +30,7 @@
             color: rgba(255,255,255,0.4);
         }
 
+        /* Skala Sumbu kHz (Y) - Diperbarui ke 10.0K */
         .axis-y {
             position: absolute;
             left: 15px; top: 15%; bottom: 25%;
@@ -41,6 +42,7 @@
             letter-spacing: 0.5px;
         }
 
+        /* Skala Sumbu Spasial (X) */
         .axis-x {
             position: absolute;
             left: 15%; right: 15%; bottom: 22%;
@@ -95,11 +97,11 @@
     <div id="interface">
         <div class="top-hud">
             <div class="text-white font-light text-[14px] mb-1 opacity-80 uppercase">Sound Of Nature - Wi Do</div>
-            <div id="status-text" class="text-[6px] tracking-[0.5em] opacity-30 italic uppercase">High_Sensitivity_Mode_V19</div>
+            <div id="status-text" class="text-[6px] tracking-[0.5em] opacity-30 italic uppercase">Optimized_Vertical_Mapping_V20</div>
         </div>
 
         <div class="axis-y">
-            <span>0.0</span><span>3.0</span><span>6.0</span><span>9.0</span><span>12.0</span><span>15.0</span>
+            <span>0.0</span><span>2.0</span><span>4.0</span><span>6.0</span><span>8.0</span><span>10.0</span>
         </div>
 
         <div class="axis-x">
@@ -107,7 +109,7 @@
         </div>
 
         <div class="absolute safe-bottom-area left-1/2 -translate-x-1/2 flex flex-col items-center gap-5 w-full">
-            <div id="node-count" class="text-[7px] font-mono opacity-20 tracking-widest uppercase text-center">Atoms: 0 | Sensitivity: High</div>
+            <div id="node-count" class="text-[7px] font-mono opacity-20 tracking-widest uppercase text-center">Atoms: 0 | Height Scale: 10KHz Max</div>
             <div class="control-panel shadow-xl">
                 <div id="playPauseBtn" class="ctrl-btn active-state">PAUSE</div>
                 <div id="resetBtn" class="ctrl-btn">RESET</div>
@@ -119,11 +121,11 @@
 
     <div id="overlay">
         <div class="text-center p-12 bg-white/[0.02] backdrop-blur-3xl rounded-[40px] border border-white/5 mx-6">
-            <h1 class="text-2xl font-thin tracking-[0.8em] mb-10 text-white uppercase leading-relaxed">Nature<br><span class="text-[10px] tracking-[0.4em] text-cyan-400">3D High Sensitivity</span></h1>
+            <h1 class="text-2xl font-thin tracking-[0.8em] mb-10 text-white uppercase leading-relaxed">Nature<br><span class="text-[10px] tracking-[0.4em] text-cyan-400">3D Vertical Mapping</span></h1>
             <button id="startButton" class="px-12 py-5 bg-white text-black rounded-full active:scale-90 transition-all shadow-2xl">
                 <span class="font-bold tracking-widest text-[10px]">INITIALIZE 3D SCAN</span>
             </button>
-            <p class="mt-8 text-[7px] text-white/20 tracking-[0.3em] uppercase italic text-center leading-loose">Sensor ditingkatkan untuk menangkap<br>suara alam yang lebih halus</p>
+            <p class="mt-8 text-[7px] text-white/20 tracking-[0.3em] uppercase italic text-center leading-loose">Ketinggian sumbu Y kini lebih responsif<br>terhadap nada tinggi suara alam</p>
         </div>
     </div>
 
@@ -138,12 +140,12 @@
         let stars, clock = new THREE.Clock();
         let lastNodeTime = 0;
         
-        // KONFIGURASI SENSOR PEKA
-        const DETECTION_THRESHOLD = 45; // Diturunkan dari 90 agar lebih peka terhadap suara pelan
+        // KONFIGURASI SENSOR PEKA & KALIBRASI Y
+        const DETECTION_THRESHOLD = 40; // Lebih peka
         const BEAT_COOLDOWN = 180; 
         const MAX_NODES = 120; 
-        const MAX_KHZ = 15.0; 
-        const Y_RANGE = 1300; 
+        const MAX_KHZ = 10.0; // Diturunkan agar nada tinggi burung (biasanya 8kHz) duduk di posisi paling atas
+        const Y_RANGE = 2200; // Jangkauan vertikal diperluas agar "melompat" lebih jauh
 
         /**
          * AUDIO SYSTEM
@@ -187,7 +189,7 @@
             scene.add(galaxyGroup);
 
             camera = new THREE.PerspectiveCamera(65, window.innerWidth / window.innerHeight, 1, 60000);
-            camera.position.set(0, 1000, 4800); 
+            camera.position.set(0, 500, 5200); // Penyesuaian jarak kamera
 
             renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
             renderer.setSize(window.innerWidth, window.innerHeight);
@@ -205,11 +207,11 @@
         }
 
         function getSpectralColor(khz) {
-            if (khz < 2.5) return 0x6366f1; 
-            if (khz < 5.0) return 0x0ea5e9; 
-            if (khz < 7.5) return 0x10b981; 
-            if (khz < 10.0) return 0xfacc15; 
-            if (khz < 12.5) return 0xf97316; 
+            if (khz < 2.0) return 0x6366f1; 
+            if (khz < 4.0) return 0x0ea5e9; 
+            if (khz < 6.0) return 0x10b981; 
+            if (khz < 8.0) return 0xfacc15; 
+            if (khz < 9.5) return 0xf97316; 
             return 0xf43f5e; 
         }
 
@@ -251,9 +253,9 @@
         function findSafePosition(yTarget, radius) {
             let attempts = 0;
             let foundPos = new THREE.Vector3();
-            const minSafeDistance = radius * 5.2; 
+            const minSafeDistance = radius * 4.8; 
             while (attempts < 60) {
-                foundPos.set((Math.random() - 0.5) * 3800, yTarget, (Math.random() - 0.5) * 3800);
+                foundPos.set((Math.random() - 0.5) * 4000, yTarget, (Math.random() - 0.5) * 4000);
                 let overlapping = false;
                 for (let node of nodes) {
                     if (foundPos.distanceTo(node.position) < minSafeDistance) { overlapping = true; break; }
@@ -267,9 +269,13 @@
         function createNode(freqIdx, intensity) {
             const khz = (freqIdx * (44100 / 2)) / 512 / 1000; 
             const color = new THREE.Color(getSpectralColor(khz));
+            
+            // Ukuran atom proporsional
             const freqScale = 1.4 + (khz * 0.35); 
             const baseSize = 15 + (intensity / 255 * 15) + (khz * 4.0);
             const atomSize = baseSize * freqScale * 0.48;
+
+            // KALIBRASI Y: 0kHz di bawah, 10kHz di atas
             const yPos = ((khz / MAX_KHZ) * Y_RANGE) - (Y_RANGE / 2.0); 
             const pos = findSafePosition(yPos, atomSize);
 
@@ -312,13 +318,12 @@
                 
                 for (let i = 0; i < dataArray.length; i++) { 
                     totalEnergy += dataArray[i];
-                    if (i > 60) { // Rentang frekuensi sedikit diperluas ke bawah (lebih peka)
+                    if (i > 50) { 
                         birdZoneEnergy += dataArray[i];
                         if (dataArray[i] > maxV) { maxV = dataArray[i]; maxI = i; }
                     }
                 }
 
-                // Rasio dominansi diturunkan dari 0.55 ke 0.35 agar lebih sensitif terhadap kicauan tipis
                 if (maxV > DETECTION_THRESHOLD && (birdZoneEnergy / (totalEnergy + 1) > 0.35)) {
                     const now = Date.now();
                     if (now - lastNodeTime > BEAT_COOLDOWN) { createNode(maxI, maxV); lastNodeTime = now; }
@@ -352,7 +357,7 @@
                     node.label.quaternion.copy(camera.quaternion);
                 });
 
-                document.getElementById('node-count').innerText = `Atoms: ${nodes.length} | Proc: High Sensitivity`;
+                document.getElementById('node-count').innerText = `Atoms: ${nodes.length} | Y-Scale: Highly Responsive`;
             }
 
             if (stars) {
