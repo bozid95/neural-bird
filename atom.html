@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>Nature Acoustic - Smart Filter Galaxy</title>
+    <title>Nature Acoustic - High Sensitivity Galaxy</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
@@ -95,7 +95,7 @@
     <div id="interface">
         <div class="top-hud">
             <div class="text-white font-light text-[14px] mb-1 opacity-80 uppercase">Sound Of Nature - Wi Do</div>
-            <div id="status-text" class="text-[6px] tracking-[0.5em] opacity-30 italic uppercase">Smart_Noise_Filter_V18</div>
+            <div id="status-text" class="text-[6px] tracking-[0.5em] opacity-30 italic uppercase">High_Sensitivity_Mode_V19</div>
         </div>
 
         <div class="axis-y">
@@ -107,7 +107,7 @@
         </div>
 
         <div class="absolute safe-bottom-area left-1/2 -translate-x-1/2 flex flex-col items-center gap-5 w-full">
-            <div id="node-count" class="text-[7px] font-mono opacity-20 tracking-widest uppercase text-center">Atoms: 0 | Noise Filter: High</div>
+            <div id="node-count" class="text-[7px] font-mono opacity-20 tracking-widest uppercase text-center">Atoms: 0 | Sensitivity: High</div>
             <div class="control-panel shadow-xl">
                 <div id="playPauseBtn" class="ctrl-btn active-state">PAUSE</div>
                 <div id="resetBtn" class="ctrl-btn">RESET</div>
@@ -119,11 +119,11 @@
 
     <div id="overlay">
         <div class="text-center p-12 bg-white/[0.02] backdrop-blur-3xl rounded-[40px] border border-white/5 mx-6">
-            <h1 class="text-2xl font-thin tracking-[0.8em] mb-10 text-white uppercase leading-relaxed">Nature<br><span class="text-[10px] tracking-[0.4em] text-cyan-400">3D Smart Engine</span></h1>
+            <h1 class="text-2xl font-thin tracking-[0.8em] mb-10 text-white uppercase leading-relaxed">Nature<br><span class="text-[10px] tracking-[0.4em] text-cyan-400">3D High Sensitivity</span></h1>
             <button id="startButton" class="px-12 py-5 bg-white text-black rounded-full active:scale-90 transition-all shadow-2xl">
                 <span class="font-bold tracking-widest text-[10px]">INITIALIZE 3D SCAN</span>
             </button>
-            <p class="mt-8 text-[7px] text-white/20 tracking-[0.3em] uppercase italic text-center leading-loose">Optimasi filter suara untuk meminimalisir<br>deteksi bising latar belakang</p>
+            <p class="mt-8 text-[7px] text-white/20 tracking-[0.3em] uppercase italic text-center leading-loose">Sensor ditingkatkan untuk menangkap<br>suara alam yang lebih halus</p>
         </div>
     </div>
 
@@ -138,10 +138,10 @@
         let stars, clock = new THREE.Clock();
         let lastNodeTime = 0;
         
-        // KONFIGURASI SMART FILTER (Paling Penting untuk Anda)
-        const DETECTION_THRESHOLD = 50; // Dinaikkan (Dulu 45) agar suara statis/angin tidak terdeteksi
-        const BEAT_COOLDOWN = 200; 
-        const MAX_NODES = 100; 
+        // KONFIGURASI SENSOR PEKA
+        const DETECTION_THRESHOLD = 45; // Diturunkan dari 90 agar lebih peka terhadap suara pelan
+        const BEAT_COOLDOWN = 180; 
+        const MAX_NODES = 120; 
         const MAX_KHZ = 15.0; 
         const Y_RANGE = 1300; 
 
@@ -310,20 +310,16 @@
                 analyser.getByteFrequencyData(dataArray);
                 let maxV = 0, maxI = 0, birdZoneEnergy = 0, totalEnergy = 0;
                 
-                // Analisis Frekuensi (Fokus pada nada tinggi burung: >3kHz)
                 for (let i = 0; i < dataArray.length; i++) { 
                     totalEnergy += dataArray[i];
-                    if (i > 65) { // Hanya ambil frekuensi di atas ~3kHz agar suara AC/kipas terfilter
+                    if (i > 60) { // Rentang frekuensi sedikit diperluas ke bawah (lebih peka)
                         birdZoneEnergy += dataArray[i];
                         if (dataArray[i] > maxV) { maxV = dataArray[i]; maxI = i; }
                     }
                 }
 
-                // SMART LOGIC: 
-                // 1. Harus di atas threshold 90
-                // 2. Energi di frekuensi tinggi harus dominan (>50% dari total energi)
-                // Ini mencegah suara statis yang menyebar merata di semua frekuensi
-                if (maxV > DETECTION_THRESHOLD && (birdZoneEnergy / (totalEnergy + 1) > 0.55)) {
+                // Rasio dominansi diturunkan dari 0.55 ke 0.35 agar lebih sensitif terhadap kicauan tipis
+                if (maxV > DETECTION_THRESHOLD && (birdZoneEnergy / (totalEnergy + 1) > 0.35)) {
                     const now = Date.now();
                     if (now - lastNodeTime > BEAT_COOLDOWN) { createNode(maxI, maxV); lastNodeTime = now; }
                 }
@@ -356,7 +352,7 @@
                     node.label.quaternion.copy(camera.quaternion);
                 });
 
-                document.getElementById('node-count').innerText = `Atoms: ${nodes.length} | Proc: Filtering Active`;
+                document.getElementById('node-count').innerText = `Atoms: ${nodes.length} | Proc: High Sensitivity`;
             }
 
             if (stars) {
