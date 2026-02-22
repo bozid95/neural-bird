@@ -93,8 +93,8 @@
     <!-- Antarmuka Teks (HUD) -->
     <div id="interface" class="w-full h-full absolute pointer-events-none z-10 text-white/40 text-[8px] uppercase tracking-[0.4em] px-8 text-center">
         <div class="absolute safe-top-area left-1/2 -translate-x-1/2 w-full">
-            <div class="text-white font-bold text-[18px] tracking-[0.8em] mb-2 drop-shadow-xl">NEURAL BIRD</div>
-            <div id="status-text" class="text-[14px] tracking-[1em] opacity-50">BY WIDODO</div>
+            <div class="text-white font-bold text-[18px] tracking-[0.8em] mb-2 drop-shadow-xl">NEURAL BIRD - DODO</div>
+            <div id="status-text" class="text-[7px] tracking-[1em] opacity-50"></div>
             
             <div class="flex flex-col items-center mt-8">
                 <div id="mic-level-container">
@@ -335,11 +335,11 @@
                     if (now - lastClusterTime > BEAT_COOLDOWN) {
                         createCluster(maxIdx, maxVal);
                         lastClusterTime = now;
-                        document.getElementById('status-text').innerText = "PEAK_SIGNAL_ACTIVE";
+                        document.getElementById('status-text').innerText = "Peak SIgnal";
                         document.getElementById('status-text').style.color = "#00ffcc";
                     }
                 } else {
-                    document.getElementById('status-text').innerText = "MONITORING_FREQUENCIES";
+                    document.getElementById('status-text').innerText = "Monitoring Frequency";
                     document.getElementById('status-text').style.color = "rgba(255,255,255,0.3)";
                 }
 
