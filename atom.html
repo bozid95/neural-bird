@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>Nature Acoustic - IG/TikTok satisfying Edition</title>
+    <title>Sound Of Nature - Eternal Galaxy Edition</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
@@ -18,7 +18,7 @@
             font-family: 'Inter', sans-serif; 
             width: 100vw; 
             height: 100dvh; 
-            position: fixed; /* Mencegah bounce scroll di iOS */
+            position: fixed;
         }
         canvas { display: block; width: 100% !important; height: 100% !important; }
         
@@ -29,42 +29,65 @@
             z-index: 10;
         }
 
-        /* Skala Sumbu kHz (Y) - Digeser agar tidak tertutup tombol UI TikTok */
+        .top-hud {
+            position: absolute;
+            top: calc(5% + var(--safe-top));
+            width: 100%;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            pointer-events: none;
+        }
+
+        /* Line Beat Visualizer Styling */
+        .line-beat-container {
+            width: 240px;
+            height: 30px;
+            margin: 5px 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        #line-beat-canvas {
+            width: 100%;
+            height: 100%;
+            filter: drop-shadow(0 0 8px rgba(34, 211, 238, 0.6));
+        }
+
         .axis-y {
             position: absolute;
-            left: 20px; top: 15%; bottom: 30%;
+            left: 20px; top: 15%; bottom: 25%;
             display: flex; flex-direction: column-reverse;
             justify-content: space-between;
             font-size: 10px; font-family: 'JetBrains Mono', monospace;
             border-left: 1px dashed rgba(255,255,255,0.2);
             padding-left: 10px;
             letter-spacing: 0.5px;
-            color: rgba(255,255,255,0.5);
+            color: rgba(255,255,255,0.4);
         }
 
-        /* Skala Sumbu Spasial (X) - Ditinggikan agar tidak tertutup caption/username */
         .axis-x {
             position: absolute;
-            left: 20%; right: 20%; bottom: 28%;
+            left: 20%; right: 20%; bottom: 18%;
             display: flex;
             justify-content: space-between;
             font-size: 8px; font-family: 'JetBrains Mono', monospace;
             border-bottom: 1px dashed rgba(255,255,255,0.2);
-            padding-bottom: 6px;
+            padding-bottom: 5px;
             letter-spacing: 1px;
-            color: rgba(255,255,255,0.3);
+            color: rgba(255,255,255,0.2);
         }
 
-        /* Kontrol diletakkan di area tengah bawah agar mudah dijangkau sebelum recording */
-        .safe-bottom-area { bottom: calc(12% + var(--safe-bottom)); }
+        .safe-bottom-area { bottom: calc(6% + var(--safe-bottom)); }
 
         .control-panel {
             background: rgba(255, 255, 255, 0.05);
-            backdrop-filter: blur(25px);
-            -webkit-backdrop-filter: blur(25px);
-            border: 1px solid rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(30px);
+            -webkit-backdrop-filter: blur(30px);
+            border: 1px solid rgba(255, 255, 255, 0.15);
             border-radius: 50px;
-            padding: 12px 28px;
+            padding: 10px 28px;
             display: flex; gap: 20px;
             pointer-events: auto;
             box-shadow: 0 10px 40px rgba(0,0,0,0.5);
@@ -75,7 +98,6 @@
             transition: all 0.3s; cursor: pointer; color: #fff;
             opacity: 0.5;
         }
-        .ctrl-btn:active { transform: scale(0.9); }
         .active-state { color: #22d3ee !important; opacity: 1; text-shadow: 0 0 10px #22d3ee; }
 
         #overlay {
@@ -86,22 +108,24 @@
             background: radial-gradient(circle at center, #111 0%, #000 100%);
             color: white; z-index: 100; transition: opacity 1s ease-in-out;
         }
-
-        .top-hud {
-            position: absolute;
-            top: calc(8% + var(--safe-top));
-            width: 100%;
-            text-align: center;
-            pointer-events: none;
-        }
     </style>
 </head>
 <body>
 
     <div id="interface">
         <div class="top-hud">
-            <div class="text-cyan-400 font-light text-[18px] tracking-[0.8em] mb-1 uppercase drop-shadow-lg">Satisfying Nature</div>
-            <div id="status-text" class="text-[7px] tracking-[0.6em] opacity-40 italic uppercase">3D_Neural_Acoustic_v2.2</div>
+            <!-- Title -->
+            <div class="text-white font-light text-[20px] tracking-[0.7em] uppercase drop-shadow-xl">Sound Of Nature</div>
+            
+            <!-- Line Beat Visualizer -->
+            <div class="line-beat-container">
+                <canvas id="line-beat-canvas" width="480" height="60"></canvas>
+            </div>
+            
+            <!-- Frequency Monitor (Dikembalikan untuk mencegah error null) -->
+            <div id="hz-indicator" class="text-[10px] font-mono tracking-widest mt-1">0.00 KHz</div>
+            
+            <div class="text-[7px] tracking-[0.5em] opacity-30 italic uppercase text-center w-full mt-2">Ultra-Sensitive Eternal Neural Mapping</div>
         </div>
 
         <div class="axis-y">
@@ -109,44 +133,44 @@
         </div>
 
         <div class="axis-x">
-            <span>COORD_L</span><span class="opacity-20 text-[6px]">SPATIAL_SYNC</span><span>COORD_R</span>
+            <span>COORD_L</span><span class="opacity-30 uppercase tracking-[0.3em]">Eternal_Vertical_Mapping_22k</span><span>COORD_R</span>
         </div>
 
         <div class="absolute safe-bottom-area left-1/2 -translate-x-1/2 flex flex-col items-center gap-6 w-full">
-            <div id="node-count" class="text-[8px] font-mono opacity-20 tracking-widest uppercase">Atoms: 0 | Proc: Slow-Motion Orbit</div>
+            <div id="node-count" class="text-[8px] font-mono opacity-20 tracking-widest uppercase text-center">Atoms: 0 | Memory: Eternal</div>
             <div class="control-panel">
                 <div id="playPauseBtn" class="ctrl-btn active-state">PAUSE</div>
                 <div id="resetBtn" class="ctrl-btn">RESET</div>
                 <div id="fullScreenBtn" class="ctrl-btn">FULL</div>
             </div>
-            <div class="text-[10px] text-white/20 font-light tracking-[1em] uppercase">WiDo Creative</div>
+            <div class="text-[10px] text-white/70 font-light uppercase italic">WiDo Creative Studio</div>
         </div>
     </div>
 
     <div id="overlay">
         <div class="text-center p-12 bg-white/[0.03] backdrop-blur-3xl rounded-[60px] border border-white/10 mx-8 shadow-2xl">
-            <h1 class="text-3xl font-thin tracking-[0.5em] mb-12 text-white leading-relaxed uppercase">Neural<br><span class="text-xs tracking-[1em] text-cyan-400">Content Engine</span></h1>
+            <h1 class="text-3xl font-thin tracking-[0.5em] mb-12 text-white leading-relaxed uppercase">Sound<br><span class="text-xs tracking-[1em] text-cyan-400">Of Nature</span></h1>
             <button id="startButton" class="px-16 py-6 bg-white text-black rounded-full active:scale-95 transition-all shadow-xl hover:bg-cyan-400 hover:text-white">
-                <span class="font-bold tracking-[0.2em] text-sm">MULAI SCAN</span>
+                <span class="font-bold tracking-[0.2em] text-sm uppercase">Activate Scan</span>
             </button>
-            <p class="mt-10 text-[8px] text-white/30 tracking-[0.4em] uppercase italic leading-loose">Dioptimalkan untuk TikTok/Reels<br>Gunakan earphone untuk hasil maksimal</p>
+            <p class="mt-10 text-[8px] text-white/30 tracking-[0.4em] uppercase italic text-center leading-loose">Visualisasi abadi dengan ketinggian 22k unit<br>Monitor line beat real-time di bawah judul</p>
         </div>
     </div>
 
     <script>
         let scene, camera, renderer, analyser, dataArray;
-        let galaxyGroup; 
+        let galaxyGroup, lineBeatCtx, lineBeatCanvas;
         let isInitialized = false, isPaused = false;
         let nodes = [], connections = [];
         let stars, clock = new THREE.Clock();
         let lastNodeTime = 0;
         
-        // KONFIGURASI KHUSUS KONTEN SATISFYING
-        const DETECTION_THRESHOLD = 32; 
-        const BEAT_COOLDOWN = 150; 
-        const MAX_NODES = 80; 
+        // KONFIGURASI ULTRA SENSITIF & KETINGGIAN EKSTREM & ETERNAL
+        const DETECTION_THRESHOLD = 18; 
+        const BEAT_COOLDOWN = 110; 
+        const MAX_NODES_LIMIT = 5000; 
         const MAX_KHZ = 10.0; 
-        const Y_RANGE = 2600; 
+        const Y_RANGE = 22000; 
 
         async function initAudio() {
             try {
@@ -154,43 +178,59 @@
                 const audioContext = new (window.AudioContext || window.webkitAudioContext)();
                 const source = audioContext.createMediaStreamSource(stream);
                 analyser = audioContext.createAnalyser();
-                analyser.fftSize = 1024;
-                analyser.smoothingTimeConstant = 0.6; 
+                analyser.fftSize = 2048; 
+                analyser.smoothingTimeConstant = 0.15; 
                 source.connect(analyser);
                 dataArray = new Uint8Array(analyser.frequencyBinCount);
+                
                 isInitialized = true;
                 document.getElementById('overlay').style.opacity = '0';
                 setTimeout(() => document.getElementById('overlay').style.display = 'none', 1000);
-            } catch (err) { alert("Mic ralat. Pastikan akses mikrofon diizinkan."); }
+            } catch (err) { alert("Akses mikrofon ditolak."); }
         }
 
         function createStarfield() {
             const starGeo = new THREE.BufferGeometry();
             const starVerts = [];
-            for (let i = 0; i < 12000; i++) {
-                starVerts.push((Math.random() - 0.5) * 15000, (Math.random() - 0.5) * 15000, (Math.random() - 0.5) * 15000);
+            for (let i = 0; i < 20000; i++) {
+                starVerts.push((Math.random() - 0.5) * 40000, (Math.random() - 0.5) * 60000, (Math.random() - 0.5) * 40000);
             }
             starGeo.setAttribute('position', new THREE.Float32BufferAttribute(starVerts, 3));
-            stars = new THREE.Points(starGeo, new THREE.PointsMaterial({ color: 0xffffff, size: 1.5, transparent: true, opacity: 0.4, sizeAttenuation: true }));
+            stars = new THREE.Points(starGeo, new THREE.PointsMaterial({ color: 0xffffff, size: 2.2, transparent: true, opacity: 0.3, sizeAttenuation: true }));
             scene.add(stars);
         }
 
         function initThree() {
             scene = new THREE.Scene();
             scene.background = new THREE.Color(0x000000);
-            scene.fog = new THREE.Fog(0x000000, 3000, 18000);
+            scene.fog = new THREE.Fog(0x000000, 15000, 100000);
             
+            const ambientLight = new THREE.AmbientLight(0xffffff, 0.4);
+            scene.add(ambientLight);
+
+            const pointLight = new THREE.PointLight(0xffffff, 1.5);
+            pointLight.position.set(5000, 12000, 10000);
+            scene.add(pointLight);
+
+            const fillLight = new THREE.PointLight(0x44aaff, 0.8);
+            fillLight.position.set(-5000, -5000, 8000);
+            scene.add(fillLight);
+
             galaxyGroup = new THREE.Group();
             scene.add(galaxyGroup);
 
-            camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 1, 80000);
-            camera.position.set(0, 1200, 5000); 
+            camera = new THREE.PerspectiveCamera(70, window.innerWidth / window.innerHeight, 1, 600000);
+            camera.position.set(0, 6000, 22000); 
 
             renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
             renderer.setSize(window.innerWidth, window.innerHeight);
             renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
             document.body.appendChild(renderer.domElement);
             
+            // Inisialisasi Line Beat Canvas
+            lineBeatCanvas = document.getElementById('line-beat-canvas');
+            lineBeatCtx = lineBeatCanvas.getContext('2d');
+
             createStarfield();
             
             window.addEventListener('resize', () => {
@@ -201,55 +241,44 @@
             animate();
         }
 
-        function getSatisfyingColor(khz) {
-            if (khz < 2.0) return 0x4f46e5; 
-            if (khz < 4.0) return 0x06b6d4; 
-            if (khz < 6.0) return 0x10b981; 
-            if (khz < 8.0) return 0xfacc15; 
-            if (khz < 9.5) return 0xf97316; 
-            return 0xf43f5e; 
+        function getHDColor(khz) {
+            const hue = THREE.MathUtils.mapLinear(Math.min(khz, MAX_KHZ), 0, MAX_KHZ, 260, 0);
+            const color = new THREE.Color();
+            color.setHSL(hue / 360, 0.9, 0.5);
+            return color;
         }
 
         function createCoordinateLabel(khz, x, y, color) {
             const canvas = document.createElement('canvas');
             const ctx = canvas.getContext('2d');
             canvas.width = 400; canvas.height = 140;
-            
-            ctx.fillStyle = "rgba(0,0,0,0.7)";
+            ctx.fillStyle = "rgba(0,0,0,0.75)";
             ctx.beginPath();
             ctx.roundRect(0, 0, 380, 120, 20);
             ctx.fill();
-
-            ctx.fillStyle = color; 
+            ctx.fillStyle = `#${color.getHexString()}`; 
             ctx.font = 'bold 42px "JetBrains Mono", monospace';
-            ctx.fillText(`${khz.toFixed(1)}KHz`, 30, 55);
-            
+            ctx.fillText(`${khz.toFixed(2)}KHz`, 30, 55);
             ctx.font = '26px "JetBrains Mono", monospace';
             ctx.fillStyle = "#ffffff";
             ctx.globalAlpha = 0.6;
-            ctx.fillText(`X:${Math.round(x)} Y:${Math.round(y)}`, 30, 100);
-            
+            ctx.fillText(`COORD:[${Math.round(x)}, ${Math.round(y)}]`, 30, 100);
             const tex = new THREE.CanvasTexture(canvas);
             const sprite = new THREE.Sprite(new THREE.SpriteMaterial({ map: tex, transparent: true, opacity: 0, depthTest: false }));
-            sprite.scale.set(240, 84, 1);
+            sprite.scale.set(700, 245, 1); 
             return sprite;
         }
 
         function createFlowConnection(startPos, endPos, color) {
             const midPoint = new THREE.Vector3().addVectors(startPos, endPos).multiplyScalar(0.5);
             const distance = startPos.distanceTo(endPos);
-            midPoint.y += (Math.random() - 0.5) * distance * 0.7;
-            midPoint.x += (Math.random() - 0.5) * distance * 0.5;
-
+            midPoint.y += (Math.random() - 0.5) * distance * 0.8;
+            midPoint.x += (Math.random() - 0.5) * distance * 0.6;
             const curve = new THREE.QuadraticBezierCurve3(startPos, midPoint, endPos);
-            const points = curve.getPoints(35); 
+            const points = curve.getPoints(40); 
             const geometry = new THREE.BufferGeometry().setFromPoints(points);
             geometry.setDrawRange(0, 0);
-
-            const material = new THREE.LineBasicMaterial({ 
-                color: color, transparent: true, opacity: 0.5, blending: THREE.AdditiveBlending 
-            });
-
+            const material = new THREE.LineBasicMaterial({ color: color, transparent: true, opacity: 0.5, blending: THREE.AdditiveBlending });
             const curveLine = new THREE.Line(geometry, material);
             curveLine.userData = { progress: 0, total: points.length, isFinished: false };
             galaxyGroup.add(curveLine);
@@ -259,9 +288,9 @@
         function findSafePosition(yTarget, radius) {
             let attempts = 0;
             let foundPos = new THREE.Vector3();
-            const minSafeDistance = radius * 5.0; 
-            while (attempts < 60) {
-                foundPos.set((Math.random() - 0.5) * 3500, yTarget, (Math.random() - 0.5) * 3500);
+            const minSafeDistance = radius * 12.0; 
+            while (attempts < 80) {
+                foundPos.set((Math.random() - 0.5) * 12000, yTarget, (Math.random() - 0.5) * 12000);
                 let overlapping = false;
                 for (let node of nodes) {
                     if (foundPos.distanceTo(node.position) < minSafeDistance) { overlapping = true; break; }
@@ -273,52 +302,91 @@
         }
 
         function createNode(freqIdx, intensity) {
-            const khz = (freqIdx * (44100 / 2)) / 512 / 1000; 
-            const color = new THREE.Color(getSatisfyingColor(khz));
+            const sampleRate = 44100;
+            const khz = (freqIdx * (sampleRate / 2)) / (analyser.fftSize / 2) / 1000; 
+            const color = getHDColor(khz);
+            const freqScale = 1.7 + (khz * 0.45); 
+            const baseSize = 60 + (intensity / 255 * 50) + (khz * 12.0); 
+            const atomSize = baseSize * freqScale * 0.55;
+
+            const normalizedFreq = Math.min(khz / MAX_KHZ, 1.0);
+            const elevatedFreq = Math.pow(normalizedFreq, 0.65); 
+            const yPos = (elevatedFreq * Y_RANGE) - (Y_RANGE * 0.4); 
             
-            const freqScale = 1.6 + (khz * 0.4); 
-            const baseSize = 25 + (intensity / 255 * 20) + (khz * 5.0);
-            const atomSize = baseSize * freqScale * 0.5;
-
-            const yPos = ((khz / MAX_KHZ) * Y_RANGE) - (Y_RANGE / 2.0); 
             const pos = findSafePosition(yPos, atomSize);
-
             const group = new THREE.Group();
             
             const mesh = new THREE.Mesh(
-                new THREE.SphereGeometry(atomSize, 32, 32), 
-                new THREE.MeshBasicMaterial({ color: color, transparent: true, opacity: 0 })
+                new THREE.SphereGeometry(atomSize, 32, 32),
+                new THREE.MeshPhongMaterial({ 
+                    color: color, 
+                    transparent: true, 
+                    opacity: 0, 
+                    shininess: 200, 
+                    specular: 0xffffff,
+                    emissive: color,
+                    emissiveIntensity: 0.45
+                })
             );
             group.add(mesh);
             
             const glow = new THREE.Mesh(
-                new THREE.SphereGeometry(atomSize * 1.8, 32, 32), 
-                new THREE.MeshBasicMaterial({ color: color, transparent: true, opacity: 0.15 })
+                new THREE.SphereGeometry(atomSize * 1.6, 24, 24), 
+                new THREE.MeshBasicMaterial({ color: color, transparent: true, opacity: 0.25 })
             );
             group.add(glow);
 
-            const label = createCoordinateLabel(khz, pos.x, pos.y, `#${color.getHexString()}`);
-            label.position.set(atomSize + 120, atomSize + 40, 0);
+            const label = createCoordinateLabel(khz, pos.x, pos.y, color);
+            label.position.set(atomSize + 350, atomSize + 175, 0);
             group.add(label);
             group.position.copy(pos);
             galaxyGroup.add(group);
 
-            let connection = null;
             if (nodes.length > 0) {
-                connection = createFlowConnection(nodes[nodes.length - 1].position, pos, color);
+                const connection = createFlowConnection(nodes[nodes.length - 1].position, pos, color);
                 connections.push(connection);
             } else {
-                mesh.material.opacity = 0.9;
+                mesh.material.opacity = 0.95;
                 label.material.opacity = 1.0;
             }
 
-            nodes.push({ group, mesh, label, position: pos, time: Date.now(), size: atomSize, connection, isRevealed: (nodes.length === 0) });
+            nodes.push({ 
+                group, mesh, label, 
+                position: pos, time: Date.now(), size: atomSize, 
+                connection: connections[connections.length-1], 
+                isRevealed: (nodes.length === 0),
+                revealTime: (nodes.length === 0) ? Date.now() : 0
+            });
 
-            if (nodes.length > MAX_NODES) {
+            if (nodes.length > MAX_NODES_LIMIT) {
                 const oldNode = nodes.shift();
                 galaxyGroup.remove(oldNode.group);
                 if(connections.length > 0) galaxyGroup.remove(connections.shift());
             }
+        }
+
+        function drawLineBeat(intensity, colorStr) {
+            const ctx = lineBeatCtx;
+            if (!ctx) return;
+            const w = lineBeatCanvas.width;
+            const h = lineBeatCanvas.height;
+            ctx.clearRect(0, 0, w, h);
+            
+            ctx.beginPath();
+            ctx.lineWidth = 4;
+            ctx.strokeStyle = colorStr;
+            ctx.lineCap = 'round';
+            
+            const points = 60;
+            const step = w / points;
+            
+            for(let i = 0; i <= points; i++) {
+                const x = i * step;
+                const y = (h/2) + Math.sin(i * 0.3 + clock.getElapsedTime() * 15) * (intensity * 28);
+                if(i === 0) ctx.moveTo(x, y);
+                else ctx.lineTo(x, y);
+            }
+            ctx.stroke();
         }
 
         function animate() {
@@ -329,27 +397,42 @@
             if (!isPaused) {
                 analyser.getByteFrequencyData(dataArray);
                 let maxV = 0, maxI = 0, birdZoneEnergy = 0, totalEnergy = 0;
-                
                 for (let i = 0; i < dataArray.length; i++) { 
                     totalEnergy += dataArray[i];
-                    if (i > 45) { 
+                    if (i > 80) { 
                         birdZoneEnergy += dataArray[i];
                         if (dataArray[i] > maxV) { maxV = dataArray[i]; maxI = i; }
                     }
                 }
 
-                if (maxV > DETECTION_THRESHOLD && (birdZoneEnergy / (totalEnergy + 1) > 0.3)) {
+                const intensity = maxV / 255;
+                const sampleRate = 44100;
+                const currentKhz = (maxI * (sampleRate / 2)) / (analyser.fftSize / 2) / 1000;
+                const coreColor = getHDColor(currentKhz);
+                const colorStr = `#${coreColor.getHexString()}`;
+                
+                const hzEl = document.getElementById('hz-indicator');
+                if (hzEl) {
+                    hzEl.innerText = `${currentKhz.toFixed(2)} KHz`;
+                    hzEl.style.color = colorStr;
+                }
+
+                drawLineBeat(intensity, colorStr);
+
+                if (maxV > DETECTION_THRESHOLD && (birdZoneEnergy / (totalEnergy + 1) > 0.25)) {
                     const now = Date.now();
-                    if (now - lastNodeTime > BEAT_COOLDOWN) { createNode(maxI, maxV); lastNodeTime = now; }
+                    if (now - lastNodeTime > BEAT_COOLDOWN) { 
+                        createNode(maxI, maxV); 
+                        lastNodeTime = now; 
+                    }
                 }
                 
-                // ROTASI DIPERLAMBAT (DARI 0.004 KE 0.0012)
-                if (galaxyGroup) galaxyGroup.rotation.y += 0.0012; 
+                if (galaxyGroup) galaxyGroup.rotation.y += 0.0006; 
 
                 nodes.forEach((node) => {
                     if (node.connection && !node.connection.userData.isFinished) {
                         const conn = node.connection;
-                        conn.userData.progress += 5.0; 
+                        conn.userData.progress += 14.0; 
                         conn.geometry.setDrawRange(0, Math.floor(conn.userData.progress));
                         if (conn.userData.progress >= conn.userData.total) {
                             conn.userData.isFinished = true;
@@ -360,26 +443,27 @@
 
                     if (node.isRevealed) {
                         const revealAge = Date.now() - (node.revealTime || node.time);
-                        if (revealAge < 700) {
-                            const explosion = 1.0 + Math.pow(1.0 - (revealAge / 700), 3) * 4.0;
+                        const spawnDuration = 600;
+                        if (revealAge < spawnDuration) {
+                            const progress = revealAge / spawnDuration;
+                            const explosion = 1.0 + Math.pow(1.0 - progress, 2) * 5.0; 
                             node.group.scale.setScalar(explosion);
-                            node.mesh.material.opacity = 0.9;
+                            node.mesh.material.opacity = 0.95;
                             node.label.material.opacity = 1.0;
                         } else {
-                            node.group.scale.setScalar(1.0 + Math.sin(time * 3.5 + nodes.indexOf(node)) * 0.03);
+                            node.group.scale.setScalar(1.0 + Math.sin(time * 3.5 + nodes.indexOf(node)) * 0.04);
                         }
                     }
                     node.label.quaternion.copy(camera.quaternion);
                 });
-
-                document.getElementById('node-count').innerText = `Atoms: ${nodes.length} | Ready for Record`;
+                
+                const countEl = document.getElementById('node-count');
+                if (countEl) countEl.innerText = `Atoms: ${nodes.length} | Memory: Eternal`;
             }
-
             if (stars) {
-                stars.rotation.y += 0.00005;
-                // ORBIT KAMERA DIPERLAMBAT (DARI 0.05 KE 0.015)
-                camera.position.x = Math.sin(time * 0.015) * 800; 
-                camera.lookAt(0, 0, 0);
+                stars.rotation.y += 0.00003;
+                camera.position.x = Math.sin(time * 0.01) * 2000; 
+                camera.lookAt(0, 5000, 0); 
             }
             renderer.render(scene, camera);
         }
