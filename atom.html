@@ -1,0 +1,389 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <title>Nature Acoustic - Smart Filter Galaxy</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        :root {
+            --safe-top: env(safe-area-inset-top);
+            --safe-bottom: env(safe-area-inset-bottom);
+        }
+        body { 
+            margin: 0; 
+            overflow: hidden; 
+            background-color: #000; 
+            font-family: 'Inter', sans-serif; 
+            width: 100vw; 
+            height: 100dvh; 
+            position: fixed;
+        }
+        canvas { display: block; width: 100% !important; height: 100% !important; }
+        
+        #interface {
+            position: absolute;
+            top: 0; left: 0; width: 100%; height: 100%;
+            pointer-events: none;
+            z-index: 10;
+            color: rgba(255,255,255,0.4);
+        }
+
+        .axis-y {
+            position: absolute;
+            left: 15px; top: 15%; bottom: 25%;
+            display: flex; flex-direction: column-reverse;
+            justify-content: space-between;
+            font-size: 9px; font-family: 'JetBrains Mono', monospace;
+            border-left: 1px dashed rgba(255,255,255,0.2);
+            padding-left: 8px;
+            letter-spacing: 0.5px;
+        }
+
+        .axis-x {
+            position: absolute;
+            left: 15%; right: 15%; bottom: 22%;
+            display: flex;
+            justify-content: space-between;
+            font-size: 8px; font-family: 'JetBrains Mono', monospace;
+            border-bottom: 1px dashed rgba(255,255,255,0.2);
+            padding-bottom: 6px;
+            letter-spacing: 1px;
+        }
+
+        .safe-bottom-area { bottom: calc(8% + var(--safe-bottom)); }
+
+        .control-panel {
+            background: rgba(255, 255, 255, 0.03);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            border-radius: 40px;
+            padding: 8px 20px;
+            display: flex; gap: 15px;
+            pointer-events: auto;
+        }
+        
+        .ctrl-btn {
+            font-size: 9px; font-weight: 800; letter-spacing: 1px;
+            transition: all 0.2s; cursor: pointer; color: #fff;
+            opacity: 0.4;
+        }
+        .ctrl-btn:active { transform: scale(0.9); }
+        .active-state { color: #22d3ee !important; opacity: 1; text-shadow: 0 0 8px #22d3ee; }
+
+        #overlay {
+            position: absolute;
+            top: 0; left: 0; width: 100%; height: 100dvh;
+            display: flex; flex-direction: column;
+            justify-content: center; align-items: center;
+            background: radial-gradient(circle at center, #0a0a0a 0%, #000 100%);
+            color: white; z-index: 100; transition: opacity 0.8s ease-in-out;
+        }
+
+        .top-hud {
+            position: absolute;
+            top: calc(5% + var(--safe-top));
+            width: 100%;
+            text-align: center;
+        }
+    </style>
+</head>
+<body>
+
+    <div id="interface">
+        <div class="top-hud">
+            <div class="text-white font-light text-[14px] mb-1 opacity-80 uppercase">Sound Of Nature - Wi Do</div>
+            <div id="status-text" class="text-[6px] tracking-[0.5em] opacity-30 italic uppercase">Smart_Noise_Filter_V18</div>
+        </div>
+
+        <div class="axis-y">
+            <span>0.0</span><span>3.0</span><span>6.0</span><span>9.0</span><span>12.0</span><span>15.0</span>
+        </div>
+
+        <div class="axis-x">
+            <span>-1.6k</span><span class="opacity-20 text-[6px]">COORD_X</span><span>+1.6k</span>
+        </div>
+
+        <div class="absolute safe-bottom-area left-1/2 -translate-x-1/2 flex flex-col items-center gap-5 w-full">
+            <div id="node-count" class="text-[7px] font-mono opacity-20 tracking-widest uppercase text-center">Atoms: 0 | Noise Filter: High</div>
+            <div class="control-panel shadow-xl">
+                <div id="playPauseBtn" class="ctrl-btn active-state">PAUSE</div>
+                <div id="resetBtn" class="ctrl-btn">RESET</div>
+                <div id="fullScreenBtn" class="ctrl-btn">FULL</div>
+            </div>
+            <div class="text-[8px] text-cyan-400 font-light tracking-[0.5em] uppercase opacity-40">WiDo Creative Neural Engine</div>
+        </div>
+    </div>
+
+    <div id="overlay">
+        <div class="text-center p-12 bg-white/[0.02] backdrop-blur-3xl rounded-[40px] border border-white/5 mx-6">
+            <h1 class="text-2xl font-thin tracking-[0.8em] mb-10 text-white uppercase leading-relaxed">Nature<br><span class="text-[10px] tracking-[0.4em] text-cyan-400">3D Smart Engine</span></h1>
+            <button id="startButton" class="px-12 py-5 bg-white text-black rounded-full active:scale-90 transition-all shadow-2xl">
+                <span class="font-bold tracking-widest text-[10px]">INITIALIZE 3D SCAN</span>
+            </button>
+            <p class="mt-8 text-[7px] text-white/20 tracking-[0.3em] uppercase italic text-center leading-loose">Optimasi filter suara untuk meminimalisir<br>deteksi bising latar belakang</p>
+        </div>
+    </div>
+
+    <script>
+        /**
+         * INISIALISASI & STATE
+         */
+        let scene, camera, renderer, analyser, dataArray;
+        let galaxyGroup; 
+        let isInitialized = false, isPaused = false;
+        let nodes = [], connections = [];
+        let stars, clock = new THREE.Clock();
+        let lastNodeTime = 0;
+        
+        // KONFIGURASI SMART FILTER (Paling Penting untuk Anda)
+        const DETECTION_THRESHOLD = 90; // Dinaikkan (Dulu 45) agar suara statis/angin tidak terdeteksi
+        const BEAT_COOLDOWN = 200; 
+        const MAX_NODES = 100; 
+        const MAX_KHZ = 15.0; 
+        const Y_RANGE = 1300; 
+
+        /**
+         * AUDIO SYSTEM
+         */
+        async function initAudio() {
+            try {
+                const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+                const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+                const source = audioContext.createMediaStreamSource(stream);
+                analyser = audioContext.createAnalyser();
+                analyser.fftSize = 1024;
+                analyser.smoothingTimeConstant = 0.5;
+                source.connect(analyser);
+                dataArray = new Uint8Array(analyser.frequencyBinCount);
+                isInitialized = true;
+                document.getElementById('overlay').style.opacity = '0';
+                setTimeout(() => document.getElementById('overlay').style.display = 'none', 800);
+            } catch (err) { alert("Akses mikrofon ditolak."); }
+        }
+
+        /**
+         * SCENE SETUP
+         */
+        function createStarfield() {
+            const starGeo = new THREE.BufferGeometry();
+            const starVerts = [];
+            for (let i = 0; i < 8000; i++) {
+                starVerts.push((Math.random() - 0.5) * 12000, (Math.random() - 0.5) * 12000, (Math.random() - 0.5) * 12000);
+            }
+            starGeo.setAttribute('position', new THREE.Float32BufferAttribute(starVerts, 3));
+            stars = new THREE.Points(starGeo, new THREE.PointsMaterial({ color: 0xffffff, size: 1.2, transparent: true, opacity: 0.3, sizeAttenuation: true }));
+            scene.add(stars);
+        }
+
+        function initThree() {
+            scene = new THREE.Scene();
+            scene.background = new THREE.Color(0x000000);
+            scene.fog = new THREE.Fog(0x000000, 2000, 15000);
+            
+            galaxyGroup = new THREE.Group();
+            scene.add(galaxyGroup);
+
+            camera = new THREE.PerspectiveCamera(65, window.innerWidth / window.innerHeight, 1, 60000);
+            camera.position.set(0, 1000, 4800); 
+
+            renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+            renderer.setSize(window.innerWidth, window.innerHeight);
+            renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+            document.body.appendChild(renderer.domElement);
+            
+            createStarfield();
+            
+            window.addEventListener('resize', () => {
+                camera.aspect = window.innerWidth / window.innerHeight;
+                camera.updateProjectionMatrix();
+                renderer.setSize(window.innerWidth, window.innerHeight);
+            });
+            animate();
+        }
+
+        function getSpectralColor(khz) {
+            if (khz < 2.5) return 0x6366f1; 
+            if (khz < 5.0) return 0x0ea5e9; 
+            if (khz < 7.5) return 0x10b981; 
+            if (khz < 10.0) return 0xfacc15; 
+            if (khz < 12.5) return 0xf97316; 
+            return 0xf43f5e; 
+        }
+
+        function createCoordinateLabel(khz, x, y, color) {
+            const canvas = document.createElement('canvas');
+            const ctx = canvas.getContext('2d');
+            canvas.width = 400; canvas.height = 150;
+            ctx.fillStyle = "rgba(0,0,0,0.65)";
+            ctx.roundRect(0, 0, 380, 130, 15);
+            ctx.fill();
+            ctx.fillStyle = color; 
+            ctx.font = 'bold 44px "JetBrains Mono", monospace';
+            ctx.fillText(`${khz.toFixed(1)}KHz`, 30, 60);
+            ctx.font = '28px "JetBrains Mono", monospace';
+            ctx.fillStyle = "#ffffff";
+            ctx.globalAlpha = 0.8;
+            ctx.fillText(`COORD:[${Math.round(x)}, ${Math.round(y)}]`, 30, 105);
+            const tex = new THREE.CanvasTexture(canvas);
+            const sprite = new THREE.Sprite(new THREE.SpriteMaterial({ map: tex, transparent: true, opacity: 0, depthTest: false }));
+            sprite.scale.set(240, 90, 1);
+            return sprite;
+        }
+
+        function createFlowConnection(startPos, endPos, color) {
+            const midPoint = new THREE.Vector3().addVectors(startPos, endPos).multiplyScalar(0.5);
+            const distance = startPos.distanceTo(endPos);
+            midPoint.y += (Math.random() - 0.5) * distance * 0.6;
+            midPoint.x += (Math.random() - 0.5) * distance * 0.4;
+            const curve = new THREE.QuadraticBezierCurve3(startPos, midPoint, endPos);
+            const points = curve.getPoints(30); 
+            const geometry = new THREE.BufferGeometry().setFromPoints(points);
+            geometry.setDrawRange(0, 0);
+            const curveLine = new THREE.Line(geometry, new THREE.LineBasicMaterial({ color: color, transparent: true, opacity: 0.45, blending: THREE.AdditiveBlending }));
+            curveLine.userData = { progress: 0, total: points.length, isFinished: false };
+            galaxyGroup.add(curveLine);
+            return curveLine;
+        }
+
+        function findSafePosition(yTarget, radius) {
+            let attempts = 0;
+            let foundPos = new THREE.Vector3();
+            const minSafeDistance = radius * 5.2; 
+            while (attempts < 60) {
+                foundPos.set((Math.random() - 0.5) * 3800, yTarget, (Math.random() - 0.5) * 3800);
+                let overlapping = false;
+                for (let node of nodes) {
+                    if (foundPos.distanceTo(node.position) < minSafeDistance) { overlapping = true; break; }
+                }
+                if (!overlapping) return foundPos;
+                attempts++;
+            }
+            return foundPos; 
+        }
+
+        function createNode(freqIdx, intensity) {
+            const khz = (freqIdx * (44100 / 2)) / 512 / 1000; 
+            const color = new THREE.Color(getSpectralColor(khz));
+            const freqScale = 1.4 + (khz * 0.35); 
+            const baseSize = 15 + (intensity / 255 * 15) + (khz * 4.0);
+            const atomSize = baseSize * freqScale * 0.48;
+            const yPos = ((khz / MAX_KHZ) * Y_RANGE) - (Y_RANGE / 2.0); 
+            const pos = findSafePosition(yPos, atomSize);
+
+            const group = new THREE.Group();
+            const mesh = new THREE.Mesh(new THREE.SphereGeometry(atomSize, 24, 24), new THREE.MeshBasicMaterial({ color: color, transparent: true, opacity: 0 }));
+            group.add(mesh);
+            const glow = new THREE.Mesh(new THREE.SphereGeometry(atomSize * 1.6, 24, 24), new THREE.MeshBasicMaterial({ color: color, transparent: true, opacity: 0.12 }));
+            group.add(glow);
+            const label = createCoordinateLabel(khz, pos.x, pos.y, `#${color.getHexString()}`);
+            label.position.set(atomSize + 90, atomSize + 30, 0);
+            group.add(label);
+            group.position.copy(pos);
+            galaxyGroup.add(group);
+
+            if (nodes.length > 0) {
+                const connection = createFlowConnection(nodes[nodes.length - 1].position, pos, color);
+                connections.push(connection);
+                nodes.push({ group, mesh, label, position: pos, time: Date.now(), size: atomSize, connection, isRevealed: false });
+            } else {
+                mesh.material.opacity = 0.9;
+                label.material.opacity = 1.0;
+                nodes.push({ group, mesh, label, position: pos, time: Date.now(), size: atomSize, connection: null, isRevealed: true });
+            }
+
+            if (nodes.length > MAX_NODES) {
+                const oldNode = nodes.shift();
+                galaxyGroup.remove(oldNode.group);
+                if(connections.length > 0) galaxyGroup.remove(connections.shift());
+            }
+        }
+
+        function animate() {
+            requestAnimationFrame(animate);
+            if (!isInitialized) return;
+            const time = clock.getElapsedTime();
+
+            if (!isPaused) {
+                analyser.getByteFrequencyData(dataArray);
+                let maxV = 0, maxI = 0, birdZoneEnergy = 0, totalEnergy = 0;
+                
+                // Analisis Frekuensi (Fokus pada nada tinggi burung: >3kHz)
+                for (let i = 0; i < dataArray.length; i++) { 
+                    totalEnergy += dataArray[i];
+                    if (i > 65) { // Hanya ambil frekuensi di atas ~3kHz agar suara AC/kipas terfilter
+                        birdZoneEnergy += dataArray[i];
+                        if (dataArray[i] > maxV) { maxV = dataArray[i]; maxI = i; }
+                    }
+                }
+
+                // SMART LOGIC: 
+                // 1. Harus di atas threshold 90
+                // 2. Energi di frekuensi tinggi harus dominan (>50% dari total energi)
+                // Ini mencegah suara statis yang menyebar merata di semua frekuensi
+                if (maxV > DETECTION_THRESHOLD && (birdZoneEnergy / (totalEnergy + 1) > 0.55)) {
+                    const now = Date.now();
+                    if (now - lastNodeTime > BEAT_COOLDOWN) { createNode(maxI, maxV); lastNodeTime = now; }
+                }
+                
+                if (galaxyGroup) galaxyGroup.rotation.y += 0.003;
+
+                nodes.forEach((node) => {
+                    if (node.connection && !node.connection.userData.isFinished) {
+                        const conn = node.connection;
+                        conn.userData.progress += 4.5; 
+                        conn.geometry.setDrawRange(0, Math.floor(conn.userData.progress));
+                        if (conn.userData.progress >= conn.userData.total) {
+                            conn.userData.isFinished = true;
+                            node.isRevealed = true;
+                            node.revealTime = Date.now();
+                        }
+                    }
+
+                    if (node.isRevealed) {
+                        const revealAge = Date.now() - (node.revealTime || node.time);
+                        if (revealAge < 600) {
+                            const explosion = 1.0 + Math.pow(1.0 - (revealAge / 600), 2) * 4.5;
+                            node.group.scale.setScalar(explosion);
+                            node.mesh.material.opacity = 0.9;
+                            node.label.material.opacity = 1.0;
+                        } else {
+                            node.group.scale.setScalar(1.0 + Math.sin(time * 3.0 + nodes.indexOf(node)) * 0.02);
+                        }
+                    }
+                    node.label.quaternion.copy(camera.quaternion);
+                });
+
+                document.getElementById('node-count').innerText = `Atoms: ${nodes.length} | Proc: Filtering Active`;
+            }
+
+            if (stars) {
+                stars.rotation.y += 0.00005;
+                camera.position.x = Math.sin(time * 0.04) * 600;
+                camera.lookAt(0, 0, 0);
+            }
+            renderer.render(scene, camera);
+        }
+
+        document.getElementById('startButton').addEventListener('click', initAudio);
+        document.getElementById('resetBtn').addEventListener('click', () => {
+            nodes.forEach(n => galaxyGroup.remove(n.group));
+            connections.forEach(l => galaxyGroup.remove(l));
+            nodes = []; connections = [];
+        });
+        document.getElementById('playPauseBtn').addEventListener('click', () => {
+            isPaused = !isPaused;
+            document.getElementById('playPauseBtn').innerText = isPaused ? "PLAY" : "PAUSE";
+            document.getElementById('playPauseBtn').classList.toggle('active-state', !isPaused);
+        });
+        document.getElementById('fullScreenBtn').addEventListener('click', () => {
+            if (!document.fullscreenElement) document.documentElement.requestFullscreen();
+            else document.exitFullscreen();
+        });
+
+        initThree();
+    </script>
+</body>
+</html>
