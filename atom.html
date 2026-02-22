@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>Nature Acoustic - High Sensitivity Galaxy</title>
+    <title>Nature Acoustic - IG/TikTok satisfying Edition</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
@@ -18,7 +18,7 @@
             font-family: 'Inter', sans-serif; 
             width: 100vw; 
             height: 100dvh; 
-            position: fixed;
+            position: fixed; /* Mencegah bounce scroll di iOS */
         }
         canvas { display: block; width: 100% !important; height: 100% !important; }
         
@@ -27,68 +27,72 @@
             top: 0; left: 0; width: 100%; height: 100%;
             pointer-events: none;
             z-index: 10;
-            color: rgba(255,255,255,0.4);
         }
 
-        /* Skala Sumbu kHz (Y) - Diperbarui ke 10.0K */
+        /* Skala Sumbu kHz (Y) - Digeser agar tidak tertutup tombol UI TikTok */
         .axis-y {
             position: absolute;
-            left: 15px; top: 15%; bottom: 25%;
+            left: 20px; top: 15%; bottom: 30%;
             display: flex; flex-direction: column-reverse;
             justify-content: space-between;
-            font-size: 9px; font-family: 'JetBrains Mono', monospace;
+            font-size: 10px; font-family: 'JetBrains Mono', monospace;
             border-left: 1px dashed rgba(255,255,255,0.2);
-            padding-left: 8px;
+            padding-left: 10px;
             letter-spacing: 0.5px;
+            color: rgba(255,255,255,0.5);
         }
 
-        /* Skala Sumbu Spasial (X) */
+        /* Skala Sumbu Spasial (X) - Ditinggikan agar tidak tertutup caption/username */
         .axis-x {
             position: absolute;
-            left: 15%; right: 15%; bottom: 22%;
+            left: 20%; right: 20%; bottom: 28%;
             display: flex;
             justify-content: space-between;
             font-size: 8px; font-family: 'JetBrains Mono', monospace;
             border-bottom: 1px dashed rgba(255,255,255,0.2);
             padding-bottom: 6px;
             letter-spacing: 1px;
+            color: rgba(255,255,255,0.3);
         }
 
-        .safe-bottom-area { bottom: calc(8% + var(--safe-bottom)); }
+        /* Kontrol diletakkan di area tengah bawah agar mudah dijangkau sebelum recording */
+        .safe-bottom-area { bottom: calc(12% + var(--safe-bottom)); }
 
         .control-panel {
-            background: rgba(255, 255, 255, 0.03);
-            backdrop-filter: blur(20px);
-            -webkit-backdrop-filter: blur(20px);
-            border: 1px solid rgba(255, 255, 255, 0.08);
-            border-radius: 40px;
-            padding: 8px 20px;
-            display: flex; gap: 15px;
+            background: rgba(255, 255, 255, 0.05);
+            backdrop-filter: blur(25px);
+            -webkit-backdrop-filter: blur(25px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 50px;
+            padding: 12px 28px;
+            display: flex; gap: 20px;
             pointer-events: auto;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.5);
         }
         
         .ctrl-btn {
-            font-size: 9px; font-weight: 800; letter-spacing: 1px;
-            transition: all 0.2s; cursor: pointer; color: #fff;
-            opacity: 0.4;
+            font-size: 10px; font-weight: 800; letter-spacing: 2px;
+            transition: all 0.3s; cursor: pointer; color: #fff;
+            opacity: 0.5;
         }
         .ctrl-btn:active { transform: scale(0.9); }
-        .active-state { color: #22d3ee !important; opacity: 1; text-shadow: 0 0 8px #22d3ee; }
+        .active-state { color: #22d3ee !important; opacity: 1; text-shadow: 0 0 10px #22d3ee; }
 
         #overlay {
             position: absolute;
             top: 0; left: 0; width: 100%; height: 100dvh;
             display: flex; flex-direction: column;
             justify-content: center; align-items: center;
-            background: radial-gradient(circle at center, #0a0a0a 0%, #000 100%);
-            color: white; z-index: 100; transition: opacity 0.8s ease-in-out;
+            background: radial-gradient(circle at center, #111 0%, #000 100%);
+            color: white; z-index: 100; transition: opacity 1s ease-in-out;
         }
 
         .top-hud {
             position: absolute;
-            top: calc(5% + var(--safe-top));
+            top: calc(8% + var(--safe-top));
             width: 100%;
             text-align: center;
+            pointer-events: none;
         }
     </style>
 </head>
@@ -96,43 +100,40 @@
 
     <div id="interface">
         <div class="top-hud">
-            <div class="text-white font-light text-[14px] mb-1 opacity-80 uppercase">Sound Of Nature - Wi Do</div>
-            <div id="status-text" class="text-[6px] tracking-[0.5em] opacity-30 italic uppercase">Optimized_Vertical_Mapping_V20</div>
+            <div class="text-cyan-400 font-light text-[18px] tracking-[0.8em] mb-1 uppercase drop-shadow-lg">Satisfying Nature</div>
+            <div id="status-text" class="text-[7px] tracking-[0.6em] opacity-40 italic uppercase">3D_Neural_Acoustic_v2.2</div>
         </div>
 
         <div class="axis-y">
-            <span>0.0</span><span>2.0</span><span>4.0</span><span>6.0</span><span>8.0</span><span>10.0</span>
+            <span>0.0</span><span>2.5</span><span>5.0</span><span>7.5</span><span>10.0</span>
         </div>
 
         <div class="axis-x">
-            <span>-1.6k</span><span class="opacity-20 text-[6px]">COORD_X</span><span>+1.6k</span>
+            <span>COORD_L</span><span class="opacity-20 text-[6px]">SPATIAL_SYNC</span><span>COORD_R</span>
         </div>
 
-        <div class="absolute safe-bottom-area left-1/2 -translate-x-1/2 flex flex-col items-center gap-5 w-full">
-            <div id="node-count" class="text-[7px] font-mono opacity-20 tracking-widest uppercase text-center">Atoms: 0 | Height Scale: 10KHz Max</div>
-            <div class="control-panel shadow-xl">
+        <div class="absolute safe-bottom-area left-1/2 -translate-x-1/2 flex flex-col items-center gap-6 w-full">
+            <div id="node-count" class="text-[8px] font-mono opacity-20 tracking-widest uppercase">Atoms: 0 | Proc: Ultra-Sensitivity</div>
+            <div class="control-panel">
                 <div id="playPauseBtn" class="ctrl-btn active-state">PAUSE</div>
                 <div id="resetBtn" class="ctrl-btn">RESET</div>
                 <div id="fullScreenBtn" class="ctrl-btn">FULL</div>
             </div>
-            <div class="text-[8px] text-cyan-400 font-light tracking-[0.5em] uppercase opacity-40">WiDo Creative Neural Engine</div>
+            <div class="text-[10px] text-white/20 font-light tracking-[1em] uppercase">WiDo Creative</div>
         </div>
     </div>
 
     <div id="overlay">
-        <div class="text-center p-12 bg-white/[0.02] backdrop-blur-3xl rounded-[40px] border border-white/5 mx-6">
-            <h1 class="text-2xl font-thin tracking-[0.8em] mb-10 text-white uppercase leading-relaxed">Nature<br><span class="text-[10px] tracking-[0.4em] text-cyan-400">3D Vertical Mapping</span></h1>
-            <button id="startButton" class="px-12 py-5 bg-white text-black rounded-full active:scale-90 transition-all shadow-2xl">
-                <span class="font-bold tracking-widest text-[10px]">INITIALIZE 3D SCAN</span>
+        <div class="text-center p-12 bg-white/[0.03] backdrop-blur-3xl rounded-[60px] border border-white/10 mx-8 shadow-2xl">
+            <h1 class="text-3xl font-thin tracking-[0.5em] mb-12 text-white leading-relaxed uppercase">Neural<br><span class="text-xs tracking-[1em] text-cyan-400">Content Engine</span></h1>
+            <button id="startButton" class="px-16 py-6 bg-white text-black rounded-full active:scale-95 transition-all shadow-xl hover:bg-cyan-400 hover:text-white">
+                <span class="font-bold tracking-[0.2em] text-sm">MULAI SCAN</span>
             </button>
-            <p class="mt-8 text-[7px] text-white/20 tracking-[0.3em] uppercase italic text-center leading-loose">Ketinggian sumbu Y kini lebih responsif<br>terhadap nada tinggi suara alam</p>
+            <p class="mt-10 text-[8px] text-white/30 tracking-[0.4em] uppercase italic leading-loose">Dioptimalkan untuk TikTok/Reels<br>Gunakan earphone untuk hasil maksimal</p>
         </div>
     </div>
 
     <script>
-        /**
-         * INISIALISASI & STATE
-         */
         let scene, camera, renderer, analyser, dataArray;
         let galaxyGroup; 
         let isInitialized = false, isPaused = false;
@@ -140,16 +141,13 @@
         let stars, clock = new THREE.Clock();
         let lastNodeTime = 0;
         
-        // KONFIGURASI SENSOR PEKA & KALIBRASI Y
-        const DETECTION_THRESHOLD = 40; // Lebih peka
-        const BEAT_COOLDOWN = 180; 
-        const MAX_NODES = 120; 
-        const MAX_KHZ = 10.0; // Diturunkan agar nada tinggi burung (biasanya 8kHz) duduk di posisi paling atas
-        const Y_RANGE = 2200; // Jangkauan vertikal diperluas agar "melompat" lebih jauh
+        // KONFIGURASI KHUSUS KONTEN SATISFYING
+        const DETECTION_THRESHOLD = 32; // Sangat peka agar burung kecil terdeteksi
+        const BEAT_COOLDOWN = 150; // Jeda lebih rapat agar visual lebih ramai dan satisfying
+        const MAX_NODES = 80; // Dibatasi agar layar tidak terlalu berantakan namun tetap megah
+        const MAX_KHZ = 10.0; 
+        const Y_RANGE = 2600; // Tinggi masif agar lompatan nada terlihat keren di layar vertikal
 
-        /**
-         * AUDIO SYSTEM
-         */
         async function initAudio() {
             try {
                 const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
@@ -157,39 +155,37 @@
                 const source = audioContext.createMediaStreamSource(stream);
                 analyser = audioContext.createAnalyser();
                 analyser.fftSize = 1024;
-                analyser.smoothingTimeConstant = 0.5;
+                analyser.smoothingTimeConstant = 0.6; // Lebih smooth responnya agar satisfying
                 source.connect(analyser);
                 dataArray = new Uint8Array(analyser.frequencyBinCount);
                 isInitialized = true;
                 document.getElementById('overlay').style.opacity = '0';
-                setTimeout(() => document.getElementById('overlay').style.display = 'none', 800);
-            } catch (err) { alert("Akses mikrofon ditolak."); }
+                setTimeout(() => document.getElementById('overlay').style.display = 'none', 1000);
+            } catch (err) { alert("Mic ralat. Pastikan akses mikrofon diizinkan."); }
         }
 
-        /**
-         * SCENE SETUP
-         */
         function createStarfield() {
             const starGeo = new THREE.BufferGeometry();
             const starVerts = [];
-            for (let i = 0; i < 8000; i++) {
-                starVerts.push((Math.random() - 0.5) * 12000, (Math.random() - 0.5) * 12000, (Math.random() - 0.5) * 12000);
+            for (let i = 0; i < 12000; i++) {
+                starVerts.push((Math.random() - 0.5) * 15000, (Math.random() - 0.5) * 15000, (Math.random() - 0.5) * 15000);
             }
             starGeo.setAttribute('position', new THREE.Float32BufferAttribute(starVerts, 3));
-            stars = new THREE.Points(starGeo, new THREE.PointsMaterial({ color: 0xffffff, size: 1.2, transparent: true, opacity: 0.3, sizeAttenuation: true }));
+            stars = new THREE.Points(starGeo, new THREE.PointsMaterial({ color: 0xffffff, size: 1.5, transparent: true, opacity: 0.4, sizeAttenuation: true }));
             scene.add(stars);
         }
 
         function initThree() {
             scene = new THREE.Scene();
             scene.background = new THREE.Color(0x000000);
-            scene.fog = new THREE.Fog(0x000000, 2000, 15000);
+            scene.fog = new THREE.Fog(0x000000, 3000, 18000);
             
             galaxyGroup = new THREE.Group();
             scene.add(galaxyGroup);
 
-            camera = new THREE.PerspectiveCamera(65, window.innerWidth / window.innerHeight, 1, 60000);
-            camera.position.set(0, 500, 5200); // Penyesuaian jarak kamera
+            // Field of View disesuaikan untuk layar vertikal HP (9:16)
+            camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 1, 80000);
+            camera.position.set(0, 1200, 5000); 
 
             renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
             renderer.setSize(window.innerWidth, window.innerHeight);
@@ -206,45 +202,58 @@
             animate();
         }
 
-        function getSpectralColor(khz) {
-            if (khz < 2.0) return 0x6366f1; 
-            if (khz < 4.0) return 0x0ea5e9; 
-            if (khz < 6.0) return 0x10b981; 
-            if (khz < 8.0) return 0xfacc15; 
-            if (khz < 9.5) return 0xf97316; 
-            return 0xf43f5e; 
+        function getSatisfyingColor(khz) {
+            // Palet warna yang lebih vibrant dan modern (satisfying)
+            if (khz < 2.0) return 0x4f46e5; // Indigo
+            if (khz < 4.0) return 0x06b6d4; // Cyan
+            if (khz < 6.0) return 0x10b981; // Emerald
+            if (khz < 8.0) return 0xfacc15; // Yellow
+            if (khz < 9.5) return 0xf97316; // Orange
+            return 0xf43f5e; // Rose
         }
 
         function createCoordinateLabel(khz, x, y, color) {
             const canvas = document.createElement('canvas');
             const ctx = canvas.getContext('2d');
-            canvas.width = 400; canvas.height = 150;
-            ctx.fillStyle = "rgba(0,0,0,0.65)";
-            ctx.roundRect(0, 0, 380, 130, 15);
+            canvas.width = 400; canvas.height = 140;
+            
+            // Box dengan rounded corners (modern style)
+            ctx.fillStyle = "rgba(0,0,0,0.7)";
+            ctx.beginPath();
+            ctx.roundRect(0, 0, 380, 120, 20);
             ctx.fill();
+
             ctx.fillStyle = color; 
-            ctx.font = 'bold 44px "JetBrains Mono", monospace';
-            ctx.fillText(`${khz.toFixed(1)}KHz`, 30, 60);
-            ctx.font = '28px "JetBrains Mono", monospace';
+            ctx.font = 'bold 42px "JetBrains Mono", monospace';
+            ctx.fillText(`${khz.toFixed(1)}KHz`, 30, 55);
+            
+            ctx.font = '26px "JetBrains Mono", monospace';
             ctx.fillStyle = "#ffffff";
-            ctx.globalAlpha = 0.8;
-            ctx.fillText(`COORD:[${Math.round(x)}, ${Math.round(y)}]`, 30, 105);
+            ctx.globalAlpha = 0.6;
+            ctx.fillText(`X:${Math.round(x)} Y:${Math.round(y)}`, 30, 100);
+            
             const tex = new THREE.CanvasTexture(canvas);
             const sprite = new THREE.Sprite(new THREE.SpriteMaterial({ map: tex, transparent: true, opacity: 0, depthTest: false }));
-            sprite.scale.set(240, 90, 1);
+            sprite.scale.set(240, 84, 1);
             return sprite;
         }
 
         function createFlowConnection(startPos, endPos, color) {
             const midPoint = new THREE.Vector3().addVectors(startPos, endPos).multiplyScalar(0.5);
             const distance = startPos.distanceTo(endPos);
-            midPoint.y += (Math.random() - 0.5) * distance * 0.6;
-            midPoint.x += (Math.random() - 0.5) * distance * 0.4;
+            midPoint.y += (Math.random() - 0.5) * distance * 0.7;
+            midPoint.x += (Math.random() - 0.5) * distance * 0.5;
+
             const curve = new THREE.QuadraticBezierCurve3(startPos, midPoint, endPos);
-            const points = curve.getPoints(30); 
+            const points = curve.getPoints(35); 
             const geometry = new THREE.BufferGeometry().setFromPoints(points);
             geometry.setDrawRange(0, 0);
-            const curveLine = new THREE.Line(geometry, new THREE.LineBasicMaterial({ color: color, transparent: true, opacity: 0.45, blending: THREE.AdditiveBlending }));
+
+            const material = new THREE.LineBasicMaterial({ 
+                color: color, transparent: true, opacity: 0.5, blending: THREE.AdditiveBlending 
+            });
+
+            const curveLine = new THREE.Line(geometry, material);
             curveLine.userData = { progress: 0, total: points.length, isFinished: false };
             galaxyGroup.add(curveLine);
             return curveLine;
@@ -253,9 +262,10 @@
         function findSafePosition(yTarget, radius) {
             let attempts = 0;
             let foundPos = new THREE.Vector3();
-            const minSafeDistance = radius * 4.8; 
+            const minSafeDistance = radius * 5.0; 
             while (attempts < 60) {
-                foundPos.set((Math.random() - 0.5) * 4000, yTarget, (Math.random() - 0.5) * 4000);
+                // Sebaran X dan Z disesuaikan agar tetap dalam frame vertikal HP
+                foundPos.set((Math.random() - 0.5) * 3500, yTarget, (Math.random() - 0.5) * 3500);
                 let overlapping = false;
                 for (let node of nodes) {
                     if (foundPos.distanceTo(node.position) < minSafeDistance) { overlapping = true; break; }
@@ -268,37 +278,48 @@
 
         function createNode(freqIdx, intensity) {
             const khz = (freqIdx * (44100 / 2)) / 512 / 1000; 
-            const color = new THREE.Color(getSpectralColor(khz));
+            const color = new THREE.Color(getSatisfyingColor(khz));
             
-            // Ukuran atom proporsional
-            const freqScale = 1.4 + (khz * 0.35); 
-            const baseSize = 15 + (intensity / 255 * 15) + (khz * 4.0);
-            const atomSize = baseSize * freqScale * 0.48;
+            // UKURAN ATOM RAKSASA (DOUBLED SIZE)
+            const freqScale = 1.6 + (khz * 0.4); 
+            const baseSize = 25 + (intensity / 255 * 20) + (khz * 5.0);
+            const atomSize = baseSize * freqScale * 0.5;
 
-            // KALIBRASI Y: 0kHz di bawah, 10kHz di atas
             const yPos = ((khz / MAX_KHZ) * Y_RANGE) - (Y_RANGE / 2.0); 
             const pos = findSafePosition(yPos, atomSize);
 
             const group = new THREE.Group();
-            const mesh = new THREE.Mesh(new THREE.SphereGeometry(atomSize, 24, 24), new THREE.MeshBasicMaterial({ color: color, transparent: true, opacity: 0 }));
+            
+            // Nucleus (Bola utama dengan warna solid terang)
+            const mesh = new THREE.Mesh(
+                new THREE.SphereGeometry(atomSize, 32, 32), 
+                new THREE.MeshBasicMaterial({ color: color, transparent: true, opacity: 0 })
+            );
             group.add(mesh);
-            const glow = new THREE.Mesh(new THREE.SphereGeometry(atomSize * 1.6, 24, 24), new THREE.MeshBasicMaterial({ color: color, transparent: true, opacity: 0.12 }));
+            
+            // Glow Effect (Satisfying aura)
+            const glow = new THREE.Mesh(
+                new THREE.SphereGeometry(atomSize * 1.8, 32, 32), 
+                new THREE.MeshBasicMaterial({ color: color, transparent: true, opacity: 0.15 })
+            );
             group.add(glow);
+
             const label = createCoordinateLabel(khz, pos.x, pos.y, `#${color.getHexString()}`);
-            label.position.set(atomSize + 90, atomSize + 30, 0);
+            label.position.set(atomSize + 120, atomSize + 40, 0);
             group.add(label);
             group.position.copy(pos);
             galaxyGroup.add(group);
 
+            let connection = null;
             if (nodes.length > 0) {
-                const connection = createFlowConnection(nodes[nodes.length - 1].position, pos, color);
+                connection = createFlowConnection(nodes[nodes.length - 1].position, pos, color);
                 connections.push(connection);
-                nodes.push({ group, mesh, label, position: pos, time: Date.now(), size: atomSize, connection, isRevealed: false });
             } else {
                 mesh.material.opacity = 0.9;
                 label.material.opacity = 1.0;
-                nodes.push({ group, mesh, label, position: pos, time: Date.now(), size: atomSize, connection: null, isRevealed: true });
             }
+
+            nodes.push({ group, mesh, label, position: pos, time: Date.now(), size: atomSize, connection, isRevealed: (nodes.length === 0) });
 
             if (nodes.length > MAX_NODES) {
                 const oldNode = nodes.shift();
@@ -318,51 +339,52 @@
                 
                 for (let i = 0; i < dataArray.length; i++) { 
                     totalEnergy += dataArray[i];
-                    if (i > 50) { 
+                    if (i > 45) { // Threshold frekuensi kicauan
                         birdZoneEnergy += dataArray[i];
                         if (dataArray[i] > maxV) { maxV = dataArray[i]; maxI = i; }
                     }
                 }
 
-                if (maxV > DETECTION_THRESHOLD && (birdZoneEnergy / (totalEnergy + 1) > 0.35)) {
+                if (maxV > DETECTION_THRESHOLD && (birdZoneEnergy / (totalEnergy + 1) > 0.3)) {
                     const now = Date.now();
                     if (now - lastNodeTime > BEAT_COOLDOWN) { createNode(maxI, maxV); lastNodeTime = now; }
                 }
                 
-                if (galaxyGroup) galaxyGroup.rotation.y += 0.003;
+                if (galaxyGroup) galaxyGroup.rotation.y += 0.004; // Rotasi sedikit lebih cepat agar dinamis
 
                 nodes.forEach((node) => {
                     if (node.connection && !node.connection.userData.isFinished) {
                         const conn = node.connection;
-                        conn.userData.progress += 4.5; 
+                        conn.userData.progress += 5.0; // Merambat sangat cepat (satisfying flow)
                         conn.geometry.setDrawRange(0, Math.floor(conn.userData.progress));
                         if (conn.userData.progress >= conn.userData.total) {
                             conn.userData.isFinished = true;
                             node.isRevealed = true;
                             node.revealTime = Date.now();
                         }
-                    }
+                    } else if (!node.connection) { node.isRevealed = true; }
 
                     if (node.isRevealed) {
                         const revealAge = Date.now() - (node.revealTime || node.time);
-                        if (revealAge < 600) {
-                            const explosion = 1.0 + Math.pow(1.0 - (revealAge / 600), 2) * 4.5;
+                        if (revealAge < 700) {
+                            // SATISFYING POP EFFECT (Ledakan dari 5x lipat menyusut lembut)
+                            const explosion = 1.0 + Math.pow(1.0 - (revealAge / 700), 3) * 4.0;
                             node.group.scale.setScalar(explosion);
                             node.mesh.material.opacity = 0.9;
                             node.label.material.opacity = 1.0;
                         } else {
-                            node.group.scale.setScalar(1.0 + Math.sin(time * 3.0 + nodes.indexOf(node)) * 0.02);
+                            node.group.scale.setScalar(1.0 + Math.sin(time * 3.5 + nodes.indexOf(node)) * 0.03);
                         }
                     }
                     node.label.quaternion.copy(camera.quaternion);
                 });
 
-                document.getElementById('node-count').innerText = `Atoms: ${nodes.length} | Y-Scale: Highly Responsive`;
+                document.getElementById('node-count').innerText = `Atoms: ${nodes.length} | Ready for Record`;
             }
 
             if (stars) {
-                stars.rotation.y += 0.00005;
-                camera.position.x = Math.sin(time * 0.04) * 600;
+                stars.rotation.y += 0.0001;
+                camera.position.x = Math.sin(time * 0.05) * 800;
                 camera.lookAt(0, 0, 0);
             }
             renderer.render(scene, camera);
