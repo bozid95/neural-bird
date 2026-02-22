@@ -1,0 +1,413 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <title>NEURAL BIRD GALAXY - BY WIDODO</title>
+    <!-- Library Inti Three.js -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <!-- Library Efek Visual (Bloom/Glow) -->
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/postprocessing/EffectComposer.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/postprocessing/RenderPass.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/postprocessing/ShaderPass.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/postprocessing/UnrealBloomPass.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/shaders/CopyShader.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/shaders/LuminosityHighPassShader.js"></script>
+    <!-- Library UI (Tailwind) -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        :root {
+            --safe-top: env(safe-area-inset-top);
+            --safe-bottom: env(safe-area-inset-bottom);
+        }
+        body { 
+            margin: 0; 
+            overflow: hidden; 
+            background-color: #000; 
+            font-family: 'JetBrains Mono', monospace; 
+            width: 100vw; 
+            height: 100dvh; 
+        }
+        canvas { display: block; width: 100% !important; height: 100% !important; }
+        
+        #overlay {
+            position: absolute;
+            top: 0; left: 0; width: 100%; height: 100dvh;
+            display: flex; flex-direction: column;
+            justify-content: center; align-items: center;
+            background: radial-gradient(circle, #0a0a0a 0%, #000 100%);
+            color: white;
+            z-index: 100;
+            transition: opacity 1s ease-in-out;
+        }
+        
+        .vignette {
+            position: absolute;
+            top: 0; left: 0; width: 100%; height: 100dvh;
+            box-shadow: inset 0 0 250px rgba(0,0,0,1);
+            pointer-events: none;
+            z-index: 5;
+        }
+        
+        /* Tata Letak HUD untuk TikTok/Instagram */
+        .safe-top-area { top: calc(8% + var(--safe-top)); }
+        .safe-bottom-area { bottom: calc(12% + var(--safe-bottom)); }
+        
+        .control-panel {
+            background: rgba(255, 255, 255, 0.08);
+            backdrop-filter: blur(25px);
+            -webkit-backdrop-filter: blur(25px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 50px;
+            padding: 12px 30px;
+            display: flex;
+            gap: 24px;
+            pointer-events: auto;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.6);
+        }
+        
+        .ctrl-btn {
+            color: rgba(255, 255, 255, 0.4);
+            font-size: 10px;
+            font-weight: bold;
+            letter-spacing: 2px;
+            transition: all 0.3s;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+        
+        .ctrl-btn:hover { color: #fff; transform: scale(1.1); }
+        .active-state { color: #00ffcc !important; text-shadow: 0 0 12px rgba(0,255,204,0.6); }
+        
+        #mic-level-container {
+            width: 180px; height: 2px; background: rgba(255,255,255,0.05); border-radius: 2px; overflow: hidden;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="vignette"></div>
+
+    <!-- Antarmuka Teks (HUD) -->
+    <div id="interface" class="w-full h-full absolute pointer-events-none z-10 text-white/40 text-[8px] uppercase tracking-[0.4em] px-8 text-center">
+        <div class="absolute safe-top-area left-1/2 -translate-x-1/2 w-full">
+            <div class="text-white font-bold text-[18px] tracking-[0.8em] mb-2 drop-shadow-xl">NEURAL BIRD</div>
+            <div id="status-text" class="text-[7px] tracking-[1em] opacity-50">BY WIDODO CREATIVE</div>
+            
+            <div class="flex flex-col items-center mt-8">
+                <div id="mic-level-container">
+                    <div id="mic-level-bar" class="h-full bg-gradient-to-r from-cyan-400 via-purple-500 to-red-500 w-0 transition-all duration-75"></div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Panel Kontrol Rekaman -->
+        <div class="absolute safe-bottom-area left-1/2 -translate-x-1/2 flex flex-col items-center gap-8 w-full">
+            <div class="control-panel">
+                <div id="playPauseBtn" class="ctrl-btn active-state">
+                    <span id="pp-icon">⏸</span> <span id="pp-text">PAUSE</span>
+                </div>
+                <div id="fullScreenBtn" class="ctrl-btn">
+                    <span>⛶</span> FULL
+                </div>
+                <div id="resetBtn" class="ctrl-btn">
+                    <span>↺</span> RESET
+                </div>
+            </div>
+            
+            <div class="text-center opacity-40">
+                <div id="node-count" class="text-[9px] font-bold tracking-widest">TOTAL_NODES: 0</div>
+                <div class="mt-2 text-[6px] tracking-[0.8em]">3D_ACOUSTIC_SPECTROGRAM</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Layar Start -->
+    <div id="overlay">
+        <div class="text-center p-14 border border-white/5 bg-black/40 backdrop-blur-3xl rounded-3xl mx-8 max-w-sm">
+            <h1 class="text-4xl font-thin tracking-[1.5em] mb-2 text-white uppercase ml-[1.5em]">Deep</h1>
+            <h2 class="text-xl font-bold tracking-[0.8em] mb-16 text-cyan-400 uppercase">Galaxy</h2>
+            <button id="startButton" class="group relative px-14 py-5 border border-cyan-500/40 rounded-full transition-all hover:bg-cyan-500 hover:text-black hover:scale-105 active:scale-95 shadow-lg shadow-cyan-500/20">
+                <span class="relative z-10 text-[11px] font-bold tracking-[1.2em]">MULAI SCAN</span>
+            </button>
+            <p class="mt-14 text-[7px] text-white/30 tracking-[0.5em] leading-relaxed uppercase">Berikan izin mikrofon untuk memulai visualisasi 3D</p>
+        </div>
+    </div>
+
+    <script>
+        /**
+         * PENGATURAN GLOBAL & INISIALISASI
+         */
+        let scene, camera, renderer, analyser, dataArray, composer;
+        let isInitialized = false;
+        let isPaused = false;
+        let lastPosition = new THREE.Vector3(0, 0, 0);
+        let clusters = [];
+        let connections = [];
+        let starField;
+        const MAX_CLUSTERS = 2500; // Kapasitas jejak sejarah
+        let clock = new THREE.Clock();
+        let lastClusterTime = 0;
+        
+        // KONFIGURASI SENSOR
+        const DETECTION_THRESHOLD = 115; // Kepekaan suara (peak)
+        const SMOOTHING_FACTOR = 0.2;    // Respon instan
+        const BEAT_COOLDOWN = 80;       // Jeda antar deteksi
+        const SPREAD_DISTANCE = 70;      // Luas sebaran klaster
+        const VIEW_LIMIT = 240;          // Batas agar tidak terpotong layar HP
+
+        /**
+         * SISTEM AUDIO
+         */
+        async function initAudio() {
+            try {
+                const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+                const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+                const source = audioContext.createMediaStreamSource(stream);
+                
+                analyser = audioContext.createAnalyser();
+                analyser.fftSize = 512; 
+                analyser.smoothingTimeConstant = SMOOTHING_FACTOR; 
+                source.connect(analyser);
+                dataArray = new Uint8Array(analyser.frequencyBinCount);
+                
+                isInitialized = true;
+                // Sembunyikan layar awal
+                document.getElementById('overlay').style.opacity = '0';
+                setTimeout(() => document.getElementById('overlay').style.display = 'none', 1000);
+            } catch (err) {
+                alert("Ralat: Tidak dapat mengakses mikrofon.");
+            }
+        }
+
+        /**
+         * GRAFIK 3D (THREE.JS)
+         */
+        function addStarField() {
+            const starGeometry = new THREE.BufferGeometry();
+            const starMaterial = new THREE.PointsMaterial({
+                color: 0xffffff, size: 0.5, transparent: true, opacity: 0.25, sizeAttenuation: true
+            });
+            const starVertices = [];
+            for (let i = 0; i < 5000; i++) {
+                starVertices.push((Math.random() - 0.5) * 2800, (Math.random() - 0.5) * 2800, (Math.random() - 0.5) * 2800);
+            }
+            starGeometry.setAttribute('position', new THREE.Float32BufferAttribute(starVertices, 3));
+            starField = new THREE.Points(starGeometry, starMaterial);
+            scene.add(starField);
+        }
+
+        function createTextLabel(text, color) {
+            const canvas = document.createElement('canvas');
+            const ctx = canvas.getContext('2d');
+            canvas.width = 160; canvas.height = 80;
+            ctx.fillStyle = color;
+            ctx.font = 'bold 22px "JetBrains Mono"';
+            ctx.fillText(text, 10, 45);
+            const texture = new THREE.CanvasTexture(canvas);
+            const spriteMat = new THREE.SpriteMaterial({ map: texture, transparent: true, opacity: 0.8 });
+            const sprite = new THREE.Sprite(spriteMat);
+            sprite.scale.set(3.8, 1.9, 1);
+            return sprite;
+        }
+
+        function initThree() {
+            scene = new THREE.Scene();
+            scene.fog = new THREE.Fog(0x000000, 300, 1800);
+            
+            // Kamera (Perspektif 3D)
+            camera = new THREE.PerspectiveCamera(65, window.innerWidth / window.innerHeight, 1, 8000);
+            camera.position.set(0, 60, 600); 
+
+            renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+            renderer.setSize(window.innerWidth, window.innerHeight);
+            renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+            document.body.appendChild(renderer.domElement);
+
+            addStarField();
+
+            // Efek Bloom (Pendaran Cahaya)
+            const renderPass = new THREE.RenderPass(scene, camera);
+            let bloom;
+            try {
+                bloom = new THREE.UnrealBloomPass(
+                    new THREE.Vector2(window.innerWidth, window.innerHeight), 3.0, 0.7, 0.1
+                );
+            } catch(e) { console.warn("Efek Bloom gagal dimuat."); }
+
+            composer = new THREE.EffectComposer(renderer);
+            composer.addPass(renderPass);
+            if(bloom) composer.addPass(bloom);
+
+            window.addEventListener('resize', onWindowResize);
+            animate();
+        }
+
+        function onWindowResize() {
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth, window.innerHeight);
+            if (composer) composer.setSize(window.innerWidth, window.innerHeight);
+        }
+
+        function getRandomContrastColor() {
+            const colors = [0x00ffcc, 0xff00ff, 0xffff00, 0x00ff00, 0xff1100, 0x00aaff, 0xffffff, 0x00ff66];
+            return colors[Math.floor(Math.random() * colors.length)];
+        }
+
+        function createCluster(freqIndex, intensity) {
+            const group = new THREE.Group();
+            const colorValue = getRandomContrastColor();
+            const color = new THREE.Color(colorValue);
+            
+            // Pergerakan 3D acak dalam batas visual
+            const newPos = lastPosition.clone().add(new THREE.Vector3(
+                (Math.random() - 0.5) * SPREAD_DISTANCE,
+                (Math.random() - 0.5) * SPREAD_DISTANCE * 1.8, 
+                (Math.random() - 0.5) * SPREAD_DISTANCE
+            ));
+
+            if (newPos.length() > VIEW_LIMIT) newPos.lerp(new THREE.Vector3(0,0,0), 0.6);
+            
+            // Sphere utama (Nod)
+            const baseSize = (intensity / 110) * 2.6;
+            const geo = new THREE.SphereGeometry(baseSize, 24, 24);
+            const mat = new THREE.MeshBasicMaterial({ color: color, transparent: true, opacity: 0 });
+            const mesh = new THREE.Mesh(geo, mat);
+            group.add(mesh);
+
+            // Partikel kecil di sekitar nod
+            for(let i=0; i<3; i++) {
+                const sGeo = new THREE.SphereGeometry(0.4, 8, 8);
+                const sMesh = new THREE.Mesh(sGeo, mat);
+                sMesh.position.set((Math.random()-0.5)*30, (Math.random()-0.5)*30, (Math.random()-0.5)*30);
+                group.add(sMesh);
+            }
+
+            // Label frekuensi KHz
+            const labelText = `${(freqIndex * 24000 / analyser.fftSize / 1000).toFixed(1)}K`;
+            const label = createTextLabel(labelText, `#${color.getHexString()}`);
+            label.position.set(baseSize + 6, baseSize + 6, 0);
+            group.add(label);
+
+            group.position.copy(newPos);
+            scene.add(group);
+
+            // Garis penghubung sejarah jalur
+            if (clusters.length > 0) {
+                const prev = clusters[clusters.length - 1];
+                const lineGeo = new THREE.BufferGeometry().setFromPoints([prev.position, newPos]);
+                const lineMat = new THREE.LineBasicMaterial({ color: color, transparent: true, opacity: 0.5, blending: THREE.AdditiveBlending });
+                const line = new THREE.Line(lineGeo, lineMat);
+                scene.add(line);
+                connections.push(line);
+            }
+
+            clusters.push({ group, position: newPos, time: Date.now(), currentOpacity: 0 });
+            lastPosition.copy(newPos);
+        }
+
+        /**
+         * LOOP ANIMASI
+         */
+        function animate() {
+            requestAnimationFrame(animate);
+            if (!isInitialized || !composer) return;
+
+            if (!isPaused) {
+                analyser.getByteFrequencyData(dataArray);
+
+                let maxVal = 0, maxIdx = 0, sum = 0;
+                for (let i = 15; i < dataArray.length; i++) {
+                    sum += dataArray[i];
+                    if (dataArray[i] > maxVal) { maxVal = dataArray[i]; maxIdx = i; }
+                }
+
+                const avg = sum / (dataArray.length - 15);
+                document.getElementById('mic-level-bar').style.width = Math.min(100, (avg / (DETECTION_THRESHOLD * 0.7)) * 100) + "%";
+                document.getElementById('node-count').innerText = `TOTAL_NODES: ${clusters.length}`;
+
+                // Pemicu nod berdasarkan intensitas suara
+                if (maxVal > DETECTION_THRESHOLD) {
+                    const now = Date.now();
+                    if (now - lastClusterTime > BEAT_COOLDOWN) {
+                        createCluster(maxIdx, maxVal);
+                        lastClusterTime = now;
+                        document.getElementById('status-text').innerText = "PEAK_SIGNAL_ACTIVE";
+                        document.getElementById('status-text').style.color = "#00ffcc";
+                    }
+                } else {
+                    document.getElementById('status-text').innerText = "MONITORING_FREQUENCIES";
+                    document.getElementById('status-text').style.color = "rgba(255,255,255,0.3)";
+                }
+
+                const now = Date.now();
+                clusters.forEach((c, index) => {
+                    // Jejak sejarah kekal (redup perlahan tapi tidak hilang)
+                    const age = (now - c.time) / 360000; 
+                    const fadeBase = Math.max(0.18, 1 - age);
+                    c.currentOpacity = THREE.MathUtils.lerp(c.currentOpacity, fadeBase, 0.15);
+                    const pulse = 1.0 + Math.sin(now * 0.01 + index) * 0.05;
+                    c.group.scale.setScalar(c.currentOpacity * pulse);
+                    c.group.children.forEach(child => {
+                        if(child.material) {
+                            const mult = (child instanceof THREE.Sprite) ? 0.35 : 1.0;
+                            child.material.opacity = c.currentOpacity * mult;
+                        }
+                    });
+                });
+            }
+
+            // Pergerakan latar belakang (Paralaks Luar Angkasa)
+            const time = clock.getElapsedTime();
+            if (starField) starField.rotation.y += 0.00015;
+
+            // Kamera Mengorbit Tenang
+            camera.position.x = Math.sin(time * 0.05) * 150;
+            camera.position.z = 600 + Math.cos(time * 0.2) * 80;
+            camera.position.y = 100 + Math.sin(time * 0.4) * 40;
+            camera.lookAt(0, 0, 0);
+
+            composer.render();
+        }
+
+        /**
+         * EVENT LISTENERS KONTROL UI
+         */
+        document.getElementById('playPauseBtn').addEventListener('click', () => {
+            isPaused = !isPaused;
+            const btn = document.getElementById('playPauseBtn');
+            btn.innerHTML = isPaused ? '<span>▶</span> PLAY' : '<span>⏸</span> PAUSE';
+            btn.classList.toggle('active-state', !isPaused);
+        });
+
+        document.getElementById('resetBtn').addEventListener('click', () => {
+            clusters.forEach(c => scene.remove(c.group));
+            connections.forEach(l => scene.remove(l));
+            clusters = []; connections = [];
+            lastPosition.set(0, 0, 0);
+            document.getElementById('node-count').innerText = `TOTAL_NODES: 0`;
+        });
+
+        document.getElementById('fullScreenBtn').addEventListener('click', () => {
+            const de = document.documentElement;
+            try {
+                if (!document.fullscreenElement) {
+                    if (de.requestFullscreen) de.requestFullscreen();
+                    else if (de.webkitRequestFullscreen) de.webkitRequestFullscreen();
+                } else {
+                    if (document.exitFullscreen) document.exitFullscreen();
+                }
+            } catch(e) { console.warn("Layar penuh tidak didukung di frame ini."); }
+        });
+
+        document.getElementById('startButton').addEventListener('click', async () => {
+            await initAudio();
+        });
+
+        window.onload = initThree;
+    </script>
+</body>
+</html>
