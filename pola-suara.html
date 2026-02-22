@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>Sound Of Nature - Deterministic Mapping</title>
+    <title>Sound Of Nature - Zero Latency Rapid Capture</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
@@ -51,7 +51,7 @@
         #line-beat-canvas {
             width: 100%;
             height: 100%;
-            filter: drop-shadow(0 0 10px rgba(34, 211, 238, 0.8));
+            filter: drop-shadow(0 0 12px rgba(34, 211, 238, 0.9));
         }
 
         .axis-y {
@@ -121,7 +121,7 @@
             
             <div id="hz-indicator" class="text-[11px] font-mono tracking-widest mt-1">SENSING...</div>
             
-            <div class="text-[7px] tracking-[0.6em] opacity-30 italic uppercase text-center w-full mt-3">Deterministic Acoustic Feature Mapping v11.0</div>
+            <div class="text-[7px] tracking-[0.6em] opacity-30 italic uppercase text-center w-full mt-3">Zero-Latency Rapid Chirp Mapping v12.0</div>
         </div>
 
         <div class="axis-y">
@@ -129,11 +129,11 @@
         </div>
 
         <div class="axis-x">
-            <span>LOW_CENTROID</span><span class="opacity-30 uppercase tracking-[0.3em]">Coordinate_Feature_Sync</span><span>HIGH_CENTROID</span>
+            <span>LOW_CENTROID</span><span class="opacity-30 uppercase tracking-[0.3em]">Instant_Feature_Sync</span><span>HIGH_CENTROID</span>
         </div>
 
         <div class="absolute safe-bottom-area left-1/2 -translate-x-1/2 flex flex-col items-center gap-6 w-full">
-            <div id="node-count" class="text-[8px] font-mono opacity-20 tracking-widest uppercase text-center">Atoms: 0 | Mapping: Deterministic</div>
+            <div id="node-count" class="text-[8px] font-mono opacity-20 tracking-widest uppercase text-center">Atoms: 0 | Capture: Ultra_Instant</div>
             <div class="control-panel">
                 <div id="playPauseBtn" class="ctrl-btn active-state">PAUSE</div>
                 <div id="resetBtn" class="ctrl-btn">RESET</div>
@@ -145,11 +145,11 @@
 
     <div id="overlay">
         <div class="text-center p-12 bg-white/[0.03] backdrop-blur-3xl rounded-[60px] border border-white/10 mx-8 shadow-2xl">
-            <h1 class="text-3xl font-thin tracking-[0.5em] mb-12 text-white leading-relaxed uppercase italic">Nature<br><span class="text-xs tracking-[1em] text-cyan-400">Deterministic Engine</span></h1>
+            <h1 class="text-3xl font-thin tracking-[0.5em] mb-12 text-white leading-relaxed uppercase italic">Nature<br><span class="text-xs tracking-[1em] text-cyan-400">Zero Latency Engine</span></h1>
             <button id="startButton" class="px-16 py-6 bg-white text-black rounded-full active:scale-95 transition-all shadow-xl hover:bg-cyan-400 hover:text-white">
-                <span class="font-bold tracking-[0.2em] text-sm uppercase">Activate Mapping</span>
+                <span class="font-bold tracking-[0.2em] text-sm uppercase">Activate Turbo Mapping</span>
             </button>
-            <p class="mt-10 text-[8px] text-white/30 tracking-[0.4em] uppercase italic text-center leading-loose">Posisi ditentukan oleh karakteristik fisik suara<br>Suara yang sama akan membentuk koordinat yang sama</p>
+            <p class="mt-10 text-[8px] text-white/30 tracking-[0.4em] uppercase italic text-center leading-loose">Optimasi untuk kicauan burung ultra-cepat tanpa delay<br>Setiap suara terkecil akan tertangkap seketika</p>
         </div>
     </div>
 
@@ -161,13 +161,13 @@
         let stars, clock = new THREE.Clock();
         let lastNodeTime = 0;
         
-        // KONFIGURASI DETERMINISTIK
-        const DETECTION_THRESHOLD = 15; 
-        const BEAT_COOLDOWN = 45; 
-        const MAX_NODES_LIMIT = 8000; 
+        // KONFIGURASI ULTRA REALTIME & ZERO DELAY
+        const DETECTION_THRESHOLD = 12; // DITURUNKAN: Menangkap getaran suara terkecil
+        const BEAT_COOLDOWN = 25; // SANGAT CEPAT: Jeda antar atom hanya 25ms (40 atom per detik)
+        const MAX_NODES_LIMIT = 10000; 
         const MAX_KHZ = 10.0; 
         const Y_RANGE = 22000; 
-        const XZ_RANGE = 12000; // Jangkauan penyebaran horizontal
+        const XZ_RANGE = 12000; 
 
         async function initAudio() {
             try {
@@ -176,7 +176,8 @@
                 const source = audioContext.createMediaStreamSource(stream);
                 analyser = audioContext.createAnalyser();
                 analyser.fftSize = 2048; 
-                analyser.smoothingTimeConstant = 0.12; 
+                // KUNCI ZERO DELAY: Smoothing ditarik ke 0.05 untuk respon instan tanpa 'ekor' data
+                analyser.smoothingTimeConstant = 0.05; 
                 source.connect(analyser);
                 dataArray = new Uint8Array(analyser.frequencyBinCount);
                 
@@ -240,14 +241,10 @@
             return color;
         }
 
-        /**
-         * FUNGSI HITUNG KOORDINAT BERDASARKAN KARAKTER SUARA (DETERMINISTIK)
-         */
         function calculateDeterministicPosition(freqIdx, intensity) {
             const sampleRate = 44100;
             const currentKhz = (freqIdx * (sampleRate / 2)) / (analyser.fftSize / 2) / 1000;
             
-            // 1. HITUNG SPECTRAL CENTROID (Titik tengah energi suara) -> UNTUK SUMBU X
             let totalMagnitude = 0;
             let weightedSum = 0;
             for (let i = 0; i < dataArray.length; i++) {
@@ -255,15 +252,13 @@
                 weightedSum += i * dataArray[i];
             }
             const centroid = weightedSum / (totalMagnitude + 1);
-            const normalizedCentroid = centroid / (dataArray.length / 4); // Normalisasi ke jangkauan umum
+            const normalizedCentroid = centroid / (dataArray.length / 4); 
             const xPos = (normalizedCentroid - 0.5) * XZ_RANGE * 1.5;
 
-            // 2. HITUNG KETINGGIAN -> UNTUK SUMBU Y
             const normalizedFreq = Math.min(currentKhz / MAX_KHZ, 1.0);
             const elevatedFreq = Math.pow(normalizedFreq, 0.65); 
             const yPos = (elevatedFreq * Y_RANGE) - (Y_RANGE * 0.4);
 
-            // 3. HITUNG SPECTRAL SPREAD (Lebar distribusi suara) -> UNTUK SUMBU Z
             let varianceSum = 0;
             for (let i = 0; i < dataArray.length; i++) {
                 varianceSum += Math.pow(i - centroid, 2) * dataArray[i];
@@ -308,12 +303,29 @@
             return curveLine;
         }
 
+        function findSafePosition(yTarget, radius) {
+            let attempts = 0;
+            let foundPos = new THREE.Vector3();
+            // Jarak spasial diperkecil sedikit agar bisa menampung deteksi ultra-cepat
+            const minSafeDistance = radius * 7.0; 
+            while (attempts < 60) {
+                foundPos.set((Math.random() - 0.5) * 12000, yTarget, (Math.random() - 0.5) * 12000);
+                let overlapping = false;
+                for (let node of nodes) {
+                    if (foundPos.distanceTo(node.position) < minSafeDistance) { overlapping = true; break; }
+                }
+                if (!overlapping) return foundPos;
+                attempts++;
+            }
+            return foundPos; 
+        }
+
         function createNode(freqIdx, intensity) {
             const { pos, khz } = calculateDeterministicPosition(freqIdx, intensity);
             const color = getHDColor(khz);
             
             const freqScale = 1.7 + (khz * 0.45); 
-            const baseSize = 70 + (intensity / 255 * 50) + (khz * 12.0); 
+            const baseSize = 75 + (intensity / 255 * 50) + (khz * 12.0); 
             const atomSize = baseSize * freqScale * 0.55;
 
             const group = new THREE.Group();
@@ -343,7 +355,7 @@
                 connections.push(connection);
             } else {
                 mesh.material.opacity = 0.95;
-                label.material.opacity = 0.8;
+                label.material.opacity = 0.7;
             }
 
             nodes.push({ 
@@ -367,14 +379,15 @@
             const h = lineBeatCanvas.height;
             ctx.clearRect(0, 0, w, h);
             ctx.beginPath();
-            ctx.lineWidth = 5;
+            ctx.lineWidth = 6;
             ctx.strokeStyle = colorStr;
             ctx.lineCap = 'round';
-            const points = 80;
+            const points = 100;
             const step = w / points;
             for(let i = 0; i <= points; i++) {
                 const x = i * step;
-                const y = (h/2) + Math.sin(i * 0.2 + clock.getElapsedTime() * 20) * (intensity * 35);
+                // Respon visual line beat ditingkatkan kecepatannya
+                const y = (h/2) + Math.sin(i * 0.25 + clock.getElapsedTime() * 30) * (intensity * 40);
                 if(i === 0) ctx.moveTo(x, y);
                 else ctx.lineTo(x, y);
             }
@@ -405,7 +418,7 @@
                 
                 const hzEl = document.getElementById('hz-indicator');
                 if (hzEl) {
-                    hzEl.innerText = `${currentKhz.toFixed(2)} KHz | CENTER: ${Math.round(maxI)}`;
+                    hzEl.innerText = `${currentKhz.toFixed(2)} KHz | SYNC: INSTANT`;
                     hzEl.style.color = colorStr;
                 }
 
@@ -424,7 +437,8 @@
                 nodes.forEach((node) => {
                     if (node.connection && !node.connection.userData.isFinished) {
                         const conn = node.connection;
-                        conn.userData.progress += 16.0; 
+                        // KUNCI INSTANT FLOW: Garis menyambung seketika
+                        conn.userData.progress += 25.0; 
                         conn.geometry.setDrawRange(0, Math.floor(conn.userData.progress));
                         if (conn.userData.progress >= conn.userData.total) {
                             conn.userData.isFinished = true;
@@ -435,7 +449,7 @@
 
                     if (node.isRevealed) {
                         const revealAge = Date.now() - (node.revealTime || node.time);
-                        const spawnDuration = 500;
+                        const spawnDuration = 400; // Animasi pop lebih snappy
                         if (revealAge < spawnDuration) {
                             const progress = revealAge / spawnDuration;
                             const explosion = 1.0 + Math.pow(1.0 - progress, 2) * 5.0; 
@@ -450,7 +464,7 @@
                 });
                 
                 const countEl = document.getElementById('node-count');
-                if (countEl) countEl.innerText = `Atoms: ${nodes.length} | Mapping: Deterministic_Active`;
+                if (countEl) countEl.innerText = `Atoms: ${nodes.length} | Proc: Zero_Latency_Active`;
             }
             if (stars) {
                 stars.rotation.y += 0.00003;
