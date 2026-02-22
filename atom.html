@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>Sound Of Nature - Eternal Galaxy Edition</title>
+    <title>Sound Of Nature - Rapid Fire Edition</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
@@ -39,7 +39,6 @@
             pointer-events: none;
         }
 
-        /* Line Beat Visualizer Styling */
         .line-beat-container {
             width: 240px;
             height: 30px;
@@ -114,18 +113,15 @@
 
     <div id="interface">
         <div class="top-hud">
-            <!-- Title -->
-            <div class="text-white font-light text-[20px] tracking-[0.2em] uppercase drop-shadow-xl">Sound Of Nature</div>
+            <div class="text-white font-light text-[20px] tracking-[0.7em] uppercase drop-shadow-xl">Sound Of Nature</div>
             
-            <!-- Line Beat Visualizer -->
             <div class="line-beat-container">
                 <canvas id="line-beat-canvas" width="480" height="60"></canvas>
             </div>
             
-            <!-- Frequency Monitor (Dikembalikan untuk mencegah error null) -->
             <div id="hz-indicator" class="text-[10px] font-mono tracking-widest mt-1">0.00 KHz</div>
             
-            <div class="text-[7px] tracking-[0.5em] opacity-30 italic uppercase text-center w-full mt-2">Ultra-Sensitive Eternal Neural Mapping</div>
+            <div class="text-[7px] tracking-[0.5em] opacity-30 italic uppercase text-center w-full mt-2">Neural Rapid-Chirp Mapping v10.0</div>
         </div>
 
         <div class="axis-y">
@@ -137,23 +133,23 @@
         </div>
 
         <div class="absolute safe-bottom-area left-1/2 -translate-x-1/2 flex flex-col items-center gap-6 w-full">
-            <div id="node-count" class="text-[8px] font-mono opacity-20 tracking-widest uppercase text-center">Atoms: 0 | Memory: Eternal</div>
+            <div id="node-count" class="text-[8px] font-mono opacity-20 tracking-widest uppercase text-center">Atoms: 0 | Capture: Rapid_Fire</div>
             <div class="control-panel">
                 <div id="playPauseBtn" class="ctrl-btn active-state">PAUSE</div>
                 <div id="resetBtn" class="ctrl-btn">RESET</div>
                 <div id="fullScreenBtn" class="ctrl-btn">FULL</div>
             </div>
-            <div class="text-[10px] text-white/70 font-light uppercase italic">WiDo Creative Studio</div>
+            <div class="text-[10px] text-white/20 font-light tracking-[1em] uppercase italic">WiDo Creative Studio</div>
         </div>
     </div>
 
     <div id="overlay">
         <div class="text-center p-12 bg-white/[0.03] backdrop-blur-3xl rounded-[60px] border border-white/10 mx-8 shadow-2xl">
-            <h1 class="text-3xl font-thin tracking-[0.5em] mb-12 text-white leading-relaxed uppercase">Sound<br><span class="text-xs tracking-[1em] text-cyan-400">Of Nature</span></h1>
+            <h1 class="text-3xl font-thin tracking-[0.5em] mb-12 text-white leading-relaxed uppercase">Neural<br><span class="text-xs tracking-[1em] text-cyan-400">Rapid Engine</span></h1>
             <button id="startButton" class="px-16 py-6 bg-white text-black rounded-full active:scale-95 transition-all shadow-xl hover:bg-cyan-400 hover:text-white">
-                <span class="font-bold tracking-[0.2em] text-sm uppercase">Activate Scan</span>
+                <span class="font-bold tracking-[0.2em] text-sm uppercase">Activate Turbo</span>
             </button>
-            <p class="mt-10 text-[8px] text-white/30 tracking-[0.4em] uppercase italic text-center leading-loose">Visualisasi abadi dengan ketinggian 22k unit<br>Monitor line beat real-time di bawah judul</p>
+            <p class="mt-10 text-[8px] text-white/30 tracking-[0.4em] uppercase italic text-center leading-loose">Dioptimalkan untuk kicauan burung yang sangat cepat<br>Jeda antar atom diperkecil untuk responsivitas maksimal</p>
         </div>
     </div>
 
@@ -165,12 +161,12 @@
         let stars, clock = new THREE.Clock();
         let lastNodeTime = 0;
         
-        // KONFIGURASI ULTRA SENSITIF & KETINGGIAN EKSTREM & ETERNAL
-        const DETECTION_THRESHOLD = 5; 
-        const BEAT_COOLDOWN = 50; 
-        const MAX_NODES_LIMIT = 5000; 
+        // KONFIGURASI RAPID-FIRE & KETINGGIAN EKSTREM
+        const DETECTION_THRESHOLD = 15; // Lebih sensitif
+        const BEAT_COOLDOWN = 45; // SANGAT CEPAT: Jeda antar atom hanya 0.045 detik
+        const MAX_NODES_LIMIT = 8000; 
         const MAX_KHZ = 10.0; 
-        const Y_RANGE = 22000; 
+        const Y_RANGE = 22000; // Tetap 22k sesuai request sebelumnya
 
         async function initAudio() {
             try {
@@ -179,7 +175,7 @@
                 const source = audioContext.createMediaStreamSource(stream);
                 analyser = audioContext.createAnalyser();
                 analyser.fftSize = 2048; 
-                analyser.smoothingTimeConstant = 0.15; 
+                analyser.smoothingTimeConstant = 0.12; // Lebih responsif lagi
                 source.connect(analyser);
                 dataArray = new Uint8Array(analyser.frequencyBinCount);
                 
@@ -212,10 +208,6 @@
             pointLight.position.set(5000, 12000, 10000);
             scene.add(pointLight);
 
-            const fillLight = new THREE.PointLight(0x44aaff, 0.8);
-            fillLight.position.set(-5000, -5000, 8000);
-            scene.add(fillLight);
-
             galaxyGroup = new THREE.Group();
             scene.add(galaxyGroup);
 
@@ -227,7 +219,6 @@
             renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
             document.body.appendChild(renderer.domElement);
             
-            // Inisialisasi Line Beat Canvas
             lineBeatCanvas = document.getElementById('line-beat-canvas');
             lineBeatCtx = lineBeatCanvas.getContext('2d');
 
@@ -253,15 +244,12 @@
             const ctx = canvas.getContext('2d');
             canvas.width = 400; canvas.height = 140;
             ctx.fillStyle = "rgba(0,0,0,0.75)";
-            ctx.beginPath();
-            ctx.roundRect(0, 0, 380, 120, 20);
-            ctx.fill();
+            ctx.roundRect(0, 0, 380, 120, 20); ctx.fill();
             ctx.fillStyle = `#${color.getHexString()}`; 
             ctx.font = 'bold 42px "JetBrains Mono", monospace';
             ctx.fillText(`${khz.toFixed(2)}KHz`, 30, 55);
             ctx.font = '26px "JetBrains Mono", monospace';
-            ctx.fillStyle = "#ffffff";
-            ctx.globalAlpha = 0.6;
+            ctx.fillStyle = "#ffffff"; ctx.globalAlpha = 0.6;
             ctx.fillText(`COORD:[${Math.round(x)}, ${Math.round(y)}]`, 30, 100);
             const tex = new THREE.CanvasTexture(canvas);
             const sprite = new THREE.Sprite(new THREE.SpriteMaterial({ map: tex, transparent: true, opacity: 0, depthTest: false }));
@@ -275,7 +263,7 @@
             midPoint.y += (Math.random() - 0.5) * distance * 0.8;
             midPoint.x += (Math.random() - 0.5) * distance * 0.6;
             const curve = new THREE.QuadraticBezierCurve3(startPos, midPoint, endPos);
-            const points = curve.getPoints(40); 
+            const points = curve.getPoints(30); 
             const geometry = new THREE.BufferGeometry().setFromPoints(points);
             geometry.setDrawRange(0, 0);
             const material = new THREE.LineBasicMaterial({ color: color, transparent: true, opacity: 0.5, blending: THREE.AdditiveBlending });
@@ -288,7 +276,7 @@
         function findSafePosition(yTarget, radius) {
             let attempts = 0;
             let foundPos = new THREE.Vector3();
-            const minSafeDistance = radius * 12.0; 
+            const minSafeDistance = radius * 9.0; // Jarak aman tetap dijaga agar tidak tumpang tindih
             while (attempts < 80) {
                 foundPos.set((Math.random() - 0.5) * 12000, yTarget, (Math.random() - 0.5) * 12000);
                 let overlapping = false;
@@ -306,7 +294,7 @@
             const khz = (freqIdx * (sampleRate / 2)) / (analyser.fftSize / 2) / 1000; 
             const color = getHDColor(khz);
             const freqScale = 1.7 + (khz * 0.45); 
-            const baseSize = 60 + (intensity / 255 * 50) + (khz * 12.0); 
+            const baseSize = 65 + (intensity / 255 * 50) + (khz * 12.0); 
             const atomSize = baseSize * freqScale * 0.55;
 
             const normalizedFreq = Math.min(khz / MAX_KHZ, 1.0);
@@ -319,13 +307,8 @@
             const mesh = new THREE.Mesh(
                 new THREE.SphereGeometry(atomSize, 32, 32),
                 new THREE.MeshPhongMaterial({ 
-                    color: color, 
-                    transparent: true, 
-                    opacity: 0, 
-                    shininess: 200, 
-                    specular: 0xffffff,
-                    emissive: color,
-                    emissiveIntensity: 0.45
+                    color: color, transparent: true, opacity: 0, 
+                    shininess: 200, specular: 0xffffff, emissive: color, emissiveIntensity: 0.45
                 })
             );
             group.add(mesh);
@@ -351,8 +334,7 @@
             }
 
             nodes.push({ 
-                group, mesh, label, 
-                position: pos, time: Date.now(), size: atomSize, 
+                group, mesh, label, position: pos, time: Date.now(), 
                 connection: connections[connections.length-1], 
                 isRevealed: (nodes.length === 0),
                 revealTime: (nodes.length === 0) ? Date.now() : 0
@@ -371,15 +353,12 @@
             const w = lineBeatCanvas.width;
             const h = lineBeatCanvas.height;
             ctx.clearRect(0, 0, w, h);
-            
             ctx.beginPath();
             ctx.lineWidth = 4;
             ctx.strokeStyle = colorStr;
             ctx.lineCap = 'round';
-            
             const points = 60;
             const step = w / points;
-            
             for(let i = 0; i <= points; i++) {
                 const x = i * step;
                 const y = (h/2) + Math.sin(i * 0.3 + clock.getElapsedTime() * 15) * (intensity * 28);
@@ -432,7 +411,7 @@
                 nodes.forEach((node) => {
                     if (node.connection && !node.connection.userData.isFinished) {
                         const conn = node.connection;
-                        conn.userData.progress += 14.0; 
+                        conn.userData.progress += 16.0; // Perambatan konstelasi sangat cepat
                         conn.geometry.setDrawRange(0, Math.floor(conn.userData.progress));
                         if (conn.userData.progress >= conn.userData.total) {
                             conn.userData.isFinished = true;
@@ -443,7 +422,7 @@
 
                     if (node.isRevealed) {
                         const revealAge = Date.now() - (node.revealTime || node.time);
-                        const spawnDuration = 600;
+                        const spawnDuration = 500;
                         if (revealAge < spawnDuration) {
                             const progress = revealAge / spawnDuration;
                             const explosion = 1.0 + Math.pow(1.0 - progress, 2) * 5.0; 
@@ -458,7 +437,7 @@
                 });
                 
                 const countEl = document.getElementById('node-count');
-                if (countEl) countEl.innerText = `Atoms: ${nodes.length} | Memory: Eternal`;
+                if (countEl) countEl.innerText = `Atoms: ${nodes.length} | Proc: Rapid_Capture_Active`;
             }
             if (stars) {
                 stars.rotation.y += 0.00003;
