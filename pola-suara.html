@@ -1,0 +1,482 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <title>Sound Of Nature - Deterministic Mapping</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        :root {
+            --safe-top: env(safe-area-inset-top);
+            --safe-bottom: env(safe-area-inset-bottom);
+        }
+        body { 
+            margin: 0; 
+            overflow: hidden; 
+            background-color: #000; 
+            font-family: 'Inter', sans-serif; 
+            width: 100vw; 
+            height: 100dvh; 
+            position: fixed;
+        }
+        canvas { display: block; width: 100% !important; height: 100% !important; }
+        
+        #interface {
+            position: absolute;
+            top: 0; left: 0; width: 100%; height: 100%;
+            pointer-events: none;
+            z-index: 10;
+        }
+
+        .top-hud {
+            position: absolute;
+            top: calc(5% + var(--safe-top));
+            width: 100%;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            pointer-events: none;
+        }
+
+        .line-beat-container {
+            width: 280px;
+            height: 40px;
+            margin: 5px 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        #line-beat-canvas {
+            width: 100%;
+            height: 100%;
+            filter: drop-shadow(0 0 10px rgba(34, 211, 238, 0.8));
+        }
+
+        .axis-y {
+            position: absolute;
+            left: 20px; top: 15%; bottom: 25%;
+            display: flex; flex-direction: column-reverse;
+            justify-content: space-between;
+            font-size: 10px; font-family: 'JetBrains Mono', monospace;
+            border-left: 1px dashed rgba(255,255,255,0.2);
+            padding-left: 10px;
+            letter-spacing: 0.5px;
+            color: rgba(255,255,255,0.4);
+        }
+
+        .axis-x {
+            position: absolute;
+            left: 15%; right: 15%; bottom: 18%;
+            display: flex;
+            justify-content: space-between;
+            font-size: 8px; font-family: 'JetBrains Mono', monospace;
+            border-bottom: 1px dashed rgba(255,255,255,0.2);
+            padding-bottom: 5px;
+            letter-spacing: 1px;
+            color: rgba(255,255,255,0.2);
+        }
+
+        .safe-bottom-area { bottom: calc(6% + var(--safe-bottom)); }
+
+        .control-panel {
+            background: rgba(255, 255, 255, 0.05);
+            backdrop-filter: blur(30px);
+            -webkit-backdrop-filter: blur(30px);
+            border: 1px solid rgba(255, 255, 255, 0.15);
+            border-radius: 50px;
+            padding: 10px 28px;
+            display: flex; gap: 20px;
+            pointer-events: auto;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.5);
+        }
+        
+        .ctrl-btn {
+            font-size: 10px; font-weight: 800; letter-spacing: 2px;
+            transition: all 0.3s; cursor: pointer; color: #fff;
+            opacity: 0.5;
+        }
+        .active-state { color: #22d3ee !important; opacity: 1; text-shadow: 0 0 10px #22d3ee; }
+
+        #overlay {
+            position: absolute;
+            top: 0; left: 0; width: 100%; height: 100dvh;
+            display: flex; flex-direction: column;
+            justify-content: center; align-items: center;
+            background: radial-gradient(circle at center, #111 0%, #000 100%);
+            color: white; z-index: 100; transition: opacity 1s ease-in-out;
+        }
+    </style>
+</head>
+<body>
+
+    <div id="interface">
+        <div class="top-hud">
+            <div class="text-white font-light text-[22px] tracking-[0.8em] uppercase drop-shadow-2xl">Sound Of Nature</div>
+            
+            <div class="line-beat-container">
+                <canvas id="line-beat-canvas" width="560" height="80"></canvas>
+            </div>
+            
+            <div id="hz-indicator" class="text-[11px] font-mono tracking-widest mt-1">SENSING...</div>
+            
+            <div class="text-[7px] tracking-[0.6em] opacity-30 italic uppercase text-center w-full mt-3">Deterministic Acoustic Feature Mapping v11.0</div>
+        </div>
+
+        <div class="axis-y">
+            <span>0.0</span><span>2.5</span><span>5.0</span><span>7.5</span><span>10.0</span>
+        </div>
+
+        <div class="axis-x">
+            <span>LOW_CENTROID</span><span class="opacity-30 uppercase tracking-[0.3em]">Coordinate_Feature_Sync</span><span>HIGH_CENTROID</span>
+        </div>
+
+        <div class="absolute safe-bottom-area left-1/2 -translate-x-1/2 flex flex-col items-center gap-6 w-full">
+            <div id="node-count" class="text-[8px] font-mono opacity-20 tracking-widest uppercase text-center">Atoms: 0 | Mapping: Deterministic</div>
+            <div class="control-panel">
+                <div id="playPauseBtn" class="ctrl-btn active-state">PAUSE</div>
+                <div id="resetBtn" class="ctrl-btn">RESET</div>
+                <div id="fullScreenBtn" class="ctrl-btn">FULL</div>
+            </div>
+            <div class="text-[10px] text-white/20 font-light tracking-[1em] uppercase italic text-center">WiDo Creative Neural Studio</div>
+        </div>
+    </div>
+
+    <div id="overlay">
+        <div class="text-center p-12 bg-white/[0.03] backdrop-blur-3xl rounded-[60px] border border-white/10 mx-8 shadow-2xl">
+            <h1 class="text-3xl font-thin tracking-[0.5em] mb-12 text-white leading-relaxed uppercase italic">Nature<br><span class="text-xs tracking-[1em] text-cyan-400">Deterministic Engine</span></h1>
+            <button id="startButton" class="px-16 py-6 bg-white text-black rounded-full active:scale-95 transition-all shadow-xl hover:bg-cyan-400 hover:text-white">
+                <span class="font-bold tracking-[0.2em] text-sm uppercase">Activate Mapping</span>
+            </button>
+            <p class="mt-10 text-[8px] text-white/30 tracking-[0.4em] uppercase italic text-center leading-loose">Posisi ditentukan oleh karakteristik fisik suara<br>Suara yang sama akan membentuk koordinat yang sama</p>
+        </div>
+    </div>
+
+    <script>
+        let scene, camera, renderer, analyser, dataArray;
+        let galaxyGroup, lineBeatCtx, lineBeatCanvas;
+        let isInitialized = false, isPaused = false;
+        let nodes = [], connections = [];
+        let stars, clock = new THREE.Clock();
+        let lastNodeTime = 0;
+        
+        // KONFIGURASI DETERMINISTIK
+        const DETECTION_THRESHOLD = 15; 
+        const BEAT_COOLDOWN = 45; 
+        const MAX_NODES_LIMIT = 8000; 
+        const MAX_KHZ = 10.0; 
+        const Y_RANGE = 22000; 
+        const XZ_RANGE = 12000; // Jangkauan penyebaran horizontal
+
+        async function initAudio() {
+            try {
+                const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+                const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+                const source = audioContext.createMediaStreamSource(stream);
+                analyser = audioContext.createAnalyser();
+                analyser.fftSize = 2048; 
+                analyser.smoothingTimeConstant = 0.12; 
+                source.connect(analyser);
+                dataArray = new Uint8Array(analyser.frequencyBinCount);
+                
+                isInitialized = true;
+                document.getElementById('overlay').style.opacity = '0';
+                setTimeout(() => document.getElementById('overlay').style.display = 'none', 1000);
+            } catch (err) { alert("Mic error. Pastikan akses diizinkan."); }
+        }
+
+        function createStarfield() {
+            const starGeo = new THREE.BufferGeometry();
+            const starVerts = [];
+            for (let i = 0; i < 20000; i++) {
+                starVerts.push((Math.random() - 0.5) * 40000, (Math.random() - 0.5) * 60000, (Math.random() - 0.5) * 40000);
+            }
+            starGeo.setAttribute('position', new THREE.Float32BufferAttribute(starVerts, 3));
+            stars = new THREE.Points(starGeo, new THREE.PointsMaterial({ color: 0xffffff, size: 2.2, transparent: true, opacity: 0.3, sizeAttenuation: true }));
+            scene.add(stars);
+        }
+
+        function initThree() {
+            scene = new THREE.Scene();
+            scene.background = new THREE.Color(0x000000);
+            scene.fog = new THREE.Fog(0x000000, 15000, 100000);
+            
+            const ambientLight = new THREE.AmbientLight(0xffffff, 0.4);
+            scene.add(ambientLight);
+
+            const pointLight = new THREE.PointLight(0xffffff, 1.5);
+            pointLight.position.set(5000, 12000, 10000);
+            scene.add(pointLight);
+
+            galaxyGroup = new THREE.Group();
+            scene.add(galaxyGroup);
+
+            camera = new THREE.PerspectiveCamera(70, window.innerWidth / window.innerHeight, 1, 600000);
+            camera.position.set(0, 6000, 22000); 
+
+            renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+            renderer.setSize(window.innerWidth, window.innerHeight);
+            renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+            document.body.appendChild(renderer.domElement);
+            
+            lineBeatCanvas = document.getElementById('line-beat-canvas');
+            lineBeatCtx = lineBeatCanvas.getContext('2d');
+
+            createStarfield();
+            
+            window.addEventListener('resize', () => {
+                camera.aspect = window.innerWidth / window.innerHeight;
+                camera.updateProjectionMatrix();
+                renderer.setSize(window.innerWidth, window.innerHeight);
+            });
+            animate();
+        }
+
+        function getHDColor(khz) {
+            const hue = THREE.MathUtils.mapLinear(Math.min(khz, MAX_KHZ), 0, MAX_KHZ, 260, 0);
+            const color = new THREE.Color();
+            color.setHSL(hue / 360, 0.9, 0.5);
+            return color;
+        }
+
+        /**
+         * FUNGSI HITUNG KOORDINAT BERDASARKAN KARAKTER SUARA (DETERMINISTIK)
+         */
+        function calculateDeterministicPosition(freqIdx, intensity) {
+            const sampleRate = 44100;
+            const currentKhz = (freqIdx * (sampleRate / 2)) / (analyser.fftSize / 2) / 1000;
+            
+            // 1. HITUNG SPECTRAL CENTROID (Titik tengah energi suara) -> UNTUK SUMBU X
+            let totalMagnitude = 0;
+            let weightedSum = 0;
+            for (let i = 0; i < dataArray.length; i++) {
+                totalMagnitude += dataArray[i];
+                weightedSum += i * dataArray[i];
+            }
+            const centroid = weightedSum / (totalMagnitude + 1);
+            const normalizedCentroid = centroid / (dataArray.length / 4); // Normalisasi ke jangkauan umum
+            const xPos = (normalizedCentroid - 0.5) * XZ_RANGE * 1.5;
+
+            // 2. HITUNG KETINGGIAN -> UNTUK SUMBU Y
+            const normalizedFreq = Math.min(currentKhz / MAX_KHZ, 1.0);
+            const elevatedFreq = Math.pow(normalizedFreq, 0.65); 
+            const yPos = (elevatedFreq * Y_RANGE) - (Y_RANGE * 0.4);
+
+            // 3. HITUNG SPECTRAL SPREAD (Lebar distribusi suara) -> UNTUK SUMBU Z
+            let varianceSum = 0;
+            for (let i = 0; i < dataArray.length; i++) {
+                varianceSum += Math.pow(i - centroid, 2) * dataArray[i];
+            }
+            const spread = Math.sqrt(varianceSum / (totalMagnitude + 1));
+            const normalizedSpread = Math.min(spread / 100, 1.0);
+            const zPos = (normalizedSpread - 0.5) * XZ_RANGE;
+
+            return { pos: new THREE.Vector3(xPos, yPos, zPos), khz: currentKhz };
+        }
+
+        function createCoordinateLabel(khz, x, y, color) {
+            const canvas = document.createElement('canvas');
+            const ctx = canvas.getContext('2d');
+            canvas.width = 400; canvas.height = 140;
+            ctx.fillStyle = "rgba(0,0,0,0.75)";
+            ctx.roundRect(0, 0, 380, 120, 20); ctx.fill();
+            ctx.fillStyle = `#${color.getHexString()}`; 
+            ctx.font = 'bold 40px "JetBrains Mono", monospace';
+            ctx.fillText(`${khz.toFixed(2)}KHz`, 30, 55);
+            ctx.font = '24px "JetBrains Mono", monospace';
+            ctx.fillStyle = "#ffffff"; ctx.globalAlpha = 0.5;
+            ctx.fillText(`F:[${Math.round(x/100)}, ${Math.round(y/100)}]`, 30, 100);
+            const tex = new THREE.CanvasTexture(canvas);
+            const sprite = new THREE.Sprite(new THREE.SpriteMaterial({ map: tex, transparent: true, opacity: 0, depthTest: false }));
+            sprite.scale.set(700, 245, 1); 
+            return sprite;
+        }
+
+        function createFlowConnection(startPos, endPos, color) {
+            const midPoint = new THREE.Vector3().addVectors(startPos, endPos).multiplyScalar(0.5);
+            const distance = startPos.distanceTo(endPos);
+            midPoint.y += (Math.random() - 0.2) * distance * 0.4;
+            const curve = new THREE.QuadraticBezierCurve3(startPos, midPoint, endPos);
+            const points = curve.getPoints(30); 
+            const geometry = new THREE.BufferGeometry().setFromPoints(points);
+            geometry.setDrawRange(0, 0);
+            const material = new THREE.LineBasicMaterial({ color: color, transparent: true, opacity: 0.4, blending: THREE.AdditiveBlending });
+            const curveLine = new THREE.Line(geometry, material);
+            curveLine.userData = { progress: 0, total: points.length, isFinished: false };
+            galaxyGroup.add(curveLine);
+            return curveLine;
+        }
+
+        function createNode(freqIdx, intensity) {
+            const { pos, khz } = calculateDeterministicPosition(freqIdx, intensity);
+            const color = getHDColor(khz);
+            
+            const freqScale = 1.7 + (khz * 0.45); 
+            const baseSize = 70 + (intensity / 255 * 50) + (khz * 12.0); 
+            const atomSize = baseSize * freqScale * 0.55;
+
+            const group = new THREE.Group();
+            const mesh = new THREE.Mesh(
+                new THREE.SphereGeometry(atomSize, 32, 32),
+                new THREE.MeshPhongMaterial({ 
+                    color: color, transparent: true, opacity: 0, 
+                    shininess: 200, specular: 0xffffff, emissive: color, emissiveIntensity: 0.4
+                })
+            );
+            group.add(mesh);
+            
+            const glow = new THREE.Mesh(
+                new THREE.SphereGeometry(atomSize * 1.5, 24, 24), 
+                new THREE.MeshBasicMaterial({ color: color, transparent: true, opacity: 0.2 })
+            );
+            group.add(glow);
+
+            const label = createCoordinateLabel(khz, pos.x, pos.y, color);
+            label.position.set(atomSize + 300, atomSize + 150, 0);
+            group.add(label);
+            group.position.copy(pos);
+            galaxyGroup.add(group);
+
+            if (nodes.length > 0) {
+                const connection = createFlowConnection(nodes[nodes.length - 1].position, pos, color);
+                connections.push(connection);
+            } else {
+                mesh.material.opacity = 0.95;
+                label.material.opacity = 0.8;
+            }
+
+            nodes.push({ 
+                group, mesh, label, position: pos, time: Date.now(), 
+                connection: connections[connections.length-1], 
+                isRevealed: (nodes.length === 0),
+                revealTime: (nodes.length === 0) ? Date.now() : 0
+            });
+
+            if (nodes.length > MAX_NODES_LIMIT) {
+                const oldNode = nodes.shift();
+                galaxyGroup.remove(oldNode.group);
+                if(connections.length > 0) galaxyGroup.remove(connections.shift());
+            }
+        }
+
+        function drawLineBeat(intensity, colorStr) {
+            const ctx = lineBeatCtx;
+            if (!ctx) return;
+            const w = lineBeatCanvas.width;
+            const h = lineBeatCanvas.height;
+            ctx.clearRect(0, 0, w, h);
+            ctx.beginPath();
+            ctx.lineWidth = 5;
+            ctx.strokeStyle = colorStr;
+            ctx.lineCap = 'round';
+            const points = 80;
+            const step = w / points;
+            for(let i = 0; i <= points; i++) {
+                const x = i * step;
+                const y = (h/2) + Math.sin(i * 0.2 + clock.getElapsedTime() * 20) * (intensity * 35);
+                if(i === 0) ctx.moveTo(x, y);
+                else ctx.lineTo(x, y);
+            }
+            ctx.stroke();
+        }
+
+        function animate() {
+            requestAnimationFrame(animate);
+            if (!isInitialized) return;
+            const time = clock.getElapsedTime();
+
+            if (!isPaused) {
+                analyser.getByteFrequencyData(dataArray);
+                let maxV = 0, maxI = 0, birdZoneEnergy = 0, totalEnergy = 0;
+                for (let i = 0; i < dataArray.length; i++) { 
+                    totalEnergy += dataArray[i];
+                    if (i > 80) { 
+                        birdZoneEnergy += dataArray[i];
+                        if (dataArray[i] > maxV) { maxV = dataArray[i]; maxI = i; }
+                    }
+                }
+
+                const intensity = maxV / 255;
+                const sampleRate = 44100;
+                const currentKhz = (maxI * (sampleRate / 2)) / (analyser.fftSize / 2) / 1000;
+                const coreColor = getHDColor(currentKhz);
+                const colorStr = `#${coreColor.getHexString()}`;
+                
+                const hzEl = document.getElementById('hz-indicator');
+                if (hzEl) {
+                    hzEl.innerText = `${currentKhz.toFixed(2)} KHz | CENTER: ${Math.round(maxI)}`;
+                    hzEl.style.color = colorStr;
+                }
+
+                drawLineBeat(intensity, colorStr);
+
+                if (maxV > DETECTION_THRESHOLD && (birdZoneEnergy / (totalEnergy + 1) > 0.25)) {
+                    const now = Date.now();
+                    if (now - lastNodeTime > BEAT_COOLDOWN) { 
+                        createNode(maxI, maxV); 
+                        lastNodeTime = now; 
+                    }
+                }
+                
+                if (galaxyGroup) galaxyGroup.rotation.y += 0.0004; 
+
+                nodes.forEach((node) => {
+                    if (node.connection && !node.connection.userData.isFinished) {
+                        const conn = node.connection;
+                        conn.userData.progress += 16.0; 
+                        conn.geometry.setDrawRange(0, Math.floor(conn.userData.progress));
+                        if (conn.userData.progress >= conn.userData.total) {
+                            conn.userData.isFinished = true;
+                            node.isRevealed = true;
+                            node.revealTime = Date.now();
+                        }
+                    } else if (!node.connection) { node.isRevealed = true; }
+
+                    if (node.isRevealed) {
+                        const revealAge = Date.now() - (node.revealTime || node.time);
+                        const spawnDuration = 500;
+                        if (revealAge < spawnDuration) {
+                            const progress = revealAge / spawnDuration;
+                            const explosion = 1.0 + Math.pow(1.0 - progress, 2) * 5.0; 
+                            node.group.scale.setScalar(explosion);
+                            node.mesh.material.opacity = 0.95;
+                            node.label.material.opacity = 0.7;
+                        } else {
+                            node.group.scale.setScalar(1.0 + Math.sin(time * 3.5 + nodes.indexOf(node)) * 0.04);
+                        }
+                    }
+                    node.label.quaternion.copy(camera.quaternion);
+                });
+                
+                const countEl = document.getElementById('node-count');
+                if (countEl) countEl.innerText = `Atoms: ${nodes.length} | Mapping: Deterministic_Active`;
+            }
+            if (stars) {
+                stars.rotation.y += 0.00003;
+                camera.position.x = Math.sin(time * 0.01) * 2000; 
+                camera.lookAt(0, 5000, 0); 
+            }
+            renderer.render(scene, camera);
+        }
+
+        document.getElementById('startButton').addEventListener('click', initAudio);
+        document.getElementById('resetBtn').addEventListener('click', () => {
+            nodes.forEach(n => galaxyGroup.remove(n.group));
+            connections.forEach(l => galaxyGroup.remove(l));
+            nodes = []; connections = [];
+        });
+        document.getElementById('playPauseBtn').addEventListener('click', () => {
+            isPaused = !isPaused;
+            document.getElementById('playPauseBtn').innerText = isPaused ? "PLAY" : "PAUSE";
+            document.getElementById('playPauseBtn').classList.toggle('active-state', !isPaused);
+        });
+        document.getElementById('fullScreenBtn').addEventListener('click', () => {
+            if (!document.fullscreenElement) document.documentElement.requestFullscreen();
+            else document.exitFullscreen();
+        });
+
+        initThree();
+    </script>
+</body>
+</html>
