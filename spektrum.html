@@ -1,0 +1,544 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <title>NEURAL STEALTH DATA SCANNER - OLEH WIDODO</title>
+    <!-- Library Utama Three.js -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <!-- Framework UI Tailwind -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        :root {
+            --safe-top: env(safe-area-inset-top);
+            --safe-bottom: env(safe-area-inset-bottom);
+            --accent: #00ffcc;
+        }
+        body { 
+            margin: 0; 
+            overflow: hidden; 
+            background-color: #000; 
+            font-family: 'JetBrains Mono', 'Courier New', monospace; 
+            width: 100vw; 
+            height: 100dvh; 
+            color: #fff;
+        }
+        canvas { display: block; width: 100% !important; height: 100% !important; }
+        
+        .glass {
+            background: rgba(0, 5, 10, 0.4);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            border: 1px solid rgba(255, 255, 255, 0.05);
+        }
+
+        #overlay {
+            position: absolute;
+            top: 0; left: 0; width: 100%; height: 100dvh;
+            display: flex; flex-direction: column;
+            justify-content: center; align-items: center;
+            background: radial-gradient(circle at center, #050508 0%, #000 100%);
+            z-index: 100;
+            transition: opacity 1.5s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        
+        .vignette {
+            position: absolute;
+            top: 0; left: 0; width: 100%; height: 100dvh;
+            box-shadow: inset 0 0 500px rgba(0,0,0,1);
+            pointer-events: none;
+            z-index: 5;
+        }
+
+        .hud-container {
+            position: absolute;
+            inset: 0;
+            padding: calc(30px + var(--safe-top)) 30px calc(30px + var(--safe-bottom)) 30px;
+            pointer-events: none;
+            z-index: 60;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+        }
+
+        /* Raw Data Matrix Style */
+        .data-matrix {
+            padding: 20px;
+            border-radius: 4px;
+            font-size: 10px;
+            letter-spacing: 1px;
+            color: rgba(255, 255, 255, 0.7);
+            line-height: 1.6;
+        }
+
+        .data-matrix b {
+            color: var(--accent);
+            text-shadow: 0 0 10px rgba(0, 255, 204, 0.5);
+        }
+
+        .control-pill {
+            background: rgba(255, 255, 255, 0.03);
+            backdrop-filter: blur(25px);
+            border-radius: 100px;
+            padding: 10px 30px;
+            display: flex;
+            gap: 30px;
+            pointer-events: auto;
+            border: 1px solid rgba(255, 255, 255, 0.08);
+        }
+
+        .ctrl-btn {
+            font-size: 14px;
+            cursor: pointer;
+            transition: 0.3s;
+            color: rgba(255, 255, 255, 0.3);
+        }
+        .ctrl-btn:hover { color: var(--accent); transform: scale(1.1); }
+
+        .timer-stealth {
+            font-size: 24px;
+            font-weight: 100;
+            letter-spacing: 4px;
+            color: var(--accent);
+            opacity: 0.8;
+        }
+
+        .upload-minimal {
+            border: 1px solid rgba(0, 255, 204, 0.2);
+            color: var(--accent);
+            padding: 14px 40px;
+            border-radius: 2px;
+            font-size: 12px;
+            letter-spacing: 5px;
+            transition: 0.4s;
+            text-transform: uppercase;
+        }
+        .upload-minimal:hover { background: rgba(0, 255, 204, 0.05); border-color: var(--accent); }
+
+        .progress-indicator {
+            width: 150px;
+            height: 1px;
+            background: rgba(255, 255, 255, 0.1);
+            margin-top: 15px;
+            position: relative;
+        }
+
+        .progress-bar-fill {
+            height: 100%;
+            background: var(--accent);
+            width: 0%;
+            transition: width 0.3s;
+            box-shadow: 0 0 10px var(--accent);
+        }
+
+        /* Signal Spectrum Styling */
+        #spectrum-container {
+            width: 100%;
+            height: 60px;
+            margin-top: 20px;
+            position: relative;
+            overflow: hidden;
+            opacity: 0.6;
+        }
+        #v-spectrum {
+            width: 100%;
+            height: 100%;
+        }
+    </style>
+</head>
+<body>
+    <div class="vignette"></div>
+    
+    <div class="hud-container">
+        <!-- Top Row: Real Data Mapping -->
+        <div class="flex justify-between items-start w-full">
+            <div class="data-matrix glass">
+                <div>NODE_ID: <b id="v-node">IDLE_INIT</b></div>
+                <div>POS_XYZ: [<b id="v-x">0</b>, <b id="v-y">0</b>, <b id="v-z">0</b>]</div>
+                <div>HEX_VAL: <b id="v-hex">#000000</b></div>
+                <div>FFT_RES: <b id="v-fft">0.000</b></div>
+                <div class="progress-indicator"><div id="v-prog-bar" class="progress-bar-fill"></div></div>
+                <div class="mt-2 text-[8px] opacity-30">LOAD_RATIO: <span id="v-percent">0%</span></div>
+            </div>
+            <div class="text-right">
+                <div id="v-timer" class="timer-stealth">01:30</div>
+                <div class="text-[7px] tracking-[4px] opacity-20 mt-1 uppercase">90S_Temporal_Lock</div>
+            </div>
+        </div>
+
+        <!-- Bottom Row: Spectrum & Controls -->
+        <div class="flex flex-col items-center gap-4 w-full">
+            <div id="spectrum-container">
+                <canvas id="v-spectrum"></canvas>
+            </div>
+
+            <div class="flex flex-col items-center gap-6">
+                <div class="control-pill shadow-2xl">
+                    <div id="playPauseBtn" class="ctrl-btn" style="color: var(--accent)">⏸</div>
+                    <div id="resetBtn" class="ctrl-btn">↺</div>
+                </div>
+                <div class="text-[6px] opacity-10 tracking-[15px] uppercase">Neural 90s Volumetric Mapping System</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Start Overlay -->
+    <div id="overlay">
+        <div class="text-center px-10">
+            <div class="mb-4 text-[8px] tracking-[20px] opacity-20 uppercase">Extended Initialization</div>
+            <h1 class="text-6xl font-thin tracking-[35px] mb-16 uppercase ml-[35px] opacity-80">90s</h1>
+            
+            <input type="file" id="imageInput" accept="image/*" class="hidden">
+            <button onclick="document.getElementById('imageInput').click()" class="upload-minimal mb-20">
+                Data_Input
+            </button>
+            
+            <div class="flex flex-col items-center">
+                <div class="w-[1px] h-16 bg-gradient-to-b from-transparent via-cyan-500 to-transparent mb-10 opacity-30"></div>
+                <button id="startButton" class="px-24 py-6 border border-white/5 rounded-full hover:bg-cyan-500/5 transition-all opacity-10 pointer-events-none">
+                    <span class="text-[14px] font-thin tracking-[15px] text-white">EXECUTE</span>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        /**
+         * ENJIN: NEURAL 90S 3D SPECTRUM STEALTH DATA
+         * Durasi konten diperpanjang menjadi 90 detik untuk visualisasi yang lebih mendalam.
+         */
+        let scene, camera, renderer, analyser, dataArray;
+        let isInitialized = false, isPaused = false;
+        let audioAverage = 0, lastLevel = 0;
+        let startTime = 0;
+        const TARGET_DURATION = 90000; // 90,000 ms = 90 detik
+        
+        let allPoints = []; 
+        let pointCloud, cloudGeometry;
+        let yMin, yMax, xMin, xMax;
+        const SAMPLING_SIZE = 165; 
+
+        // Cache UI
+        const domNode = document.getElementById('v-node');
+        const domX = document.getElementById('v-x');
+        const domY = document.getElementById('v-y');
+        const domZ = document.getElementById('v-z');
+        const domHex = document.getElementById('v-hex');
+        const domFft = document.getElementById('v-fft');
+        const domProgBar = document.getElementById('v-prog-bar');
+        const domPercent = document.getElementById('v-percent');
+        const domTimer = document.getElementById('v-timer');
+        const domPPIcon = document.getElementById('playPauseBtn');
+        const specCanvas = document.getElementById('v-spectrum');
+        const specCtx = specCanvas.getContext('2d');
+
+        document.getElementById('imageInput').addEventListener('change', function(e) {
+            const file = e.target.files[0];
+            if (file) {
+                const reader = new FileReader();
+                reader.onload = (event) => {
+                    processImage(event.target.result);
+                    const startBtn = document.getElementById('startButton');
+                    startBtn.style.opacity = "1";
+                    startBtn.style.pointerEvents = "auto";
+                };
+                reader.readAsDataURL(file);
+            }
+        });
+
+        function processImage(url) {
+            const img = new Image();
+            img.onload = () => {
+                const canvas = document.createElement('canvas');
+                const ctx = canvas.getContext('2d');
+                canvas.width = SAMPLING_SIZE; canvas.height = SAMPLING_SIZE;
+                ctx.drawImage(img, 0, 0, SAMPLING_SIZE, SAMPLING_SIZE);
+                
+                const data = ctx.getImageData(0, 0, SAMPLING_SIZE, SAMPLING_SIZE).data;
+                allPoints = [];
+                yMin = 9999; yMax = -9999; xMin = 9999; xMax = -9999;
+
+                for (let y = 0; y < SAMPLING_SIZE; y++) {
+                    for (let x = 0; x < SAMPLING_SIZE; x++) {
+                        const idx = (y * SAMPLING_SIZE + x) * 4;
+                        const r = data[idx], g = data[idx+1], b = data[idx+2], a = data[idx+3];
+                        const bri = (r + g + b) / 3;
+
+                        if (a > 128 && r + g + b < 710 && bri > 5) {
+                            const px = (x - SAMPLING_SIZE / 2) * 30.0;
+                            const py = (SAMPLING_SIZE / 2 - y) * 30.0;
+                            const pz = (bri / 255) * 320.0;
+
+                            if (py < yMin) yMin = py; if (py > yMax) yMax = py;
+                            if (px < xMin) xMin = px; if (px > xMax) xMax = px;
+
+                            allPoints.push({
+                                x: px, y: py, z_base: pz,
+                                color: new THREE.Color(r/255, g/255, b/255),
+                                hex: "#" + ((1 << 24) + (r << 16) + (g << 8) + b).toString(16).slice(1).toUpperCase(),
+                                isRevealed: false, revealTime: -1
+                            });
+                        }
+                    }
+                }
+                // Urutan dari bawah ke atas
+                allPoints.sort((a, b) => a.y - b.y);
+                initThreeScene();
+            };
+            img.src = url;
+        }
+
+        function initThreeScene() {
+            if(pointCloud) scene.remove(pointCloud);
+            cloudGeometry = new THREE.BufferGeometry();
+            const pPos = new Float32Array(allPoints.length * 3);
+            const pCol = new Float32Array(allPoints.length * 3);
+            const pSize = new Float32Array(allPoints.length);
+
+            for(let i=0; i<allPoints.length; i++) {
+                pPos[i*3] = allPoints[i].x; pPos[i*3+1] = allPoints[i].y; pPos[i*3+2] = -1200;
+                pSize[i] = 0.0;
+            }
+            cloudGeometry.setAttribute('position', new THREE.BufferAttribute(pPos, 3));
+            cloudGeometry.setAttribute('color', new THREE.BufferAttribute(pCol, 3));
+            cloudGeometry.setAttribute('size', new THREE.BufferAttribute(pSize, 1));
+
+            const material = new THREE.ShaderMaterial({
+                uniforms: { uAudioPulse: { value: 0 } },
+                vertexShader: `
+                    attribute float size;
+                    varying vec3 vColor;
+                    uniform float uAudioPulse;
+                    void main() {
+                        vColor = color;
+                        vec4 mvPosition = modelViewMatrix * vec4(position, 1.0);
+                        gl_PointSize = size * (1.0 + uAudioPulse * 15.0) * (550.0 / -mvPosition.z);
+                        gl_Position = projectionMatrix * mvPosition;
+                    }
+                `,
+                fragmentShader: `
+                    varying vec3 vColor;
+                    void main() {
+                        gl_FragColor = vec4(vColor, 1.0);
+                    }
+                `,
+                transparent: true,
+                vertexColors: true,
+                blending: THREE.AdditiveBlending
+            });
+            pointCloud = new THREE.Points(cloudGeometry, material);
+            scene.add(pointCloud);
+        }
+
+        async function initAudio() {
+            try {
+                const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+                const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+                const source = audioContext.createMediaStreamSource(stream);
+                analyser = audioContext.createAnalyser();
+                analyser.fftSize = 512;
+                source.connect(analyser);
+                dataArray = new Uint8Array(analyser.frequencyBinCount);
+                isInitialized = true;
+                startTime = Date.now();
+                document.getElementById('overlay').style.opacity = '0';
+                setTimeout(() => document.getElementById('overlay').style.display = 'none', 1500);
+            } catch (err) { }
+        }
+
+        function initThree() {
+            scene = new THREE.Scene();
+            camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 1, 2000000);
+            renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+            renderer.setSize(window.innerWidth, window.innerHeight);
+            renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2)); 
+            document.body.appendChild(renderer.domElement);
+
+            const starGeo = new THREE.BufferGeometry();
+            const starPos = [];
+            for(let i=0; i<4000; i++) starPos.push((Math.random()-0.5)*400000, (Math.random()-0.5)*400000, (Math.random()-0.5)*300000);
+            starGeo.setAttribute('position', new THREE.Float32BufferAttribute(starPos, 3));
+            scene.add(new THREE.Points(starGeo, new THREE.PointsMaterial({ size: 2.5, color: 0x4466aa, transparent: true, opacity: 0.15 })));
+
+            window.addEventListener('resize', () => {
+                camera.aspect = window.innerWidth / window.innerHeight; camera.updateProjectionMatrix();
+                renderer.setSize(window.innerWidth, window.innerHeight);
+                resizeSpectrum();
+            });
+            resizeSpectrum();
+            animate();
+        }
+
+        function resizeSpectrum() {
+            specCanvas.width = specCanvas.offsetWidth;
+            specCanvas.height = specCanvas.offsetHeight;
+        }
+
+        function drawSpectrum() {
+            if (!isInitialized || !dataArray) return;
+            specCtx.clearRect(0, 0, specCanvas.width, specCanvas.height);
+            
+            const barWidth = 2;
+            const barGap = 3;
+            const barsCount = Math.floor(specCanvas.width / (barWidth + barGap));
+            const center = specCanvas.width / 2;
+
+            specCtx.fillStyle = '#00ffcc';
+            
+            for (let i = 0; i < barsCount / 2; i++) {
+                const freqIdx = Math.floor((i / (barsCount / 2)) * (dataArray.length * 0.6));
+                const val = dataArray[freqIdx] / 255;
+                const barHeight = val * specCanvas.height;
+
+                // Symmetrical draw
+                specCtx.globalAlpha = 0.8 * (1 - i / (barsCount / 2));
+                specCtx.fillRect(center + i * (barWidth + barGap), specCanvas.height - barHeight, barWidth, barHeight);
+                specCtx.fillRect(center - i * (barWidth + barGap), specCanvas.height - barHeight, barWidth, barHeight);
+            }
+        }
+
+        function updateDataMatrix(p, intensity) {
+            domNode.innerText = "0x" + Math.floor(Math.random() * 1000000).toString(16).toUpperCase();
+            domX.innerText = p.x.toFixed(0);
+            domY.innerText = p.y.toFixed(0);
+            domZ.innerText = p.z_base.toFixed(0);
+            domHex.innerText = p.hex;
+            domFft.innerText = (intensity / 255).toFixed(3);
+        }
+
+        function process3DRise(currentTimeMs) {
+            if (isPaused || allPoints.length === 0) return;
+            const elapsed = currentTimeMs - startTime;
+            if (elapsed >= TARGET_DURATION) { finish(); return; }
+
+            const progress = elapsed / TARGET_DURATION;
+            const currentFloorY = yMin + (yMax - yMin) * progress;
+            const pArr = cloudGeometry.attributes.position.array;
+            const cArr = cloudGeometry.attributes.color.array;
+            const sArr = cloudGeometry.attributes.size.array;
+            const now = currentTimeMs / 1000;
+            const imgWidth = xMax - xMin;
+
+            let lastRevealedPoint = null;
+
+            for(let i = 0; i < allPoints.length; i++) {
+                const p = allPoints[i];
+                if (p.isRevealed) continue;
+
+                const normX = (p.x - xMin) / imgWidth;
+                const binIdx = Math.floor(normX * (dataArray.length * 0.6));
+                const freqIntensity = (dataArray[binIdx] || 0) / 255;
+                const wave = 0.5 + Math.sin(normX * Math.PI) * 0.5;
+                const spectrumReach = currentFloorY + (freqIntensity * (yMax - yMin) * 0.5 * wave);
+
+                if (p.y <= spectrumReach) {
+                    p.isRevealed = true;
+                    p.revealTime = now;
+                    pArr[i*3+2] = p.z_base;
+                    sArr[i] = 40.0 + (freqIntensity * 160.0);
+                    cArr[i*3] = p.color.r * (5.0 + freqIntensity * 12.0);
+                    cArr[i*3+1] = p.color.g * (5.0 + freqIntensity * 12.0);
+                    cArr[i*3+2] = p.color.b * (5.0 + freqIntensity * 12.0);
+                    lastRevealedPoint = p;
+                }
+            }
+
+            if (lastRevealedPoint) updateDataMatrix(lastRevealedPoint, audioAverage);
+
+            cloudGeometry.attributes.position.needsUpdate = true;
+            cloudGeometry.attributes.color.needsUpdate = true;
+            cloudGeometry.attributes.size.needsUpdate = true;
+
+            const revealedCount = allPoints.filter(p => p.isRevealed).length;
+            const perc = Math.round(revealedCount / allPoints.length * 100);
+            domPercent.innerText = perc + "%";
+            domProgBar.style.width = perc + "%";
+            
+            const totalSeconds = Math.max(0, 90 - Math.floor(elapsed / 1000));
+            const mm = Math.floor(totalSeconds / 60);
+            const ss = totalSeconds % 60;
+            domTimer.innerText = `${mm.toString().padStart(2, '0')}:${ss.toString().padStart(2, '0')}`;
+        }
+
+        function finish() {
+            const pArr = cloudGeometry.attributes.position.array;
+            const cArr = cloudGeometry.attributes.color.array;
+            const sArr = cloudGeometry.attributes.size.array;
+            for(let i=0; i<allPoints.length; i++) {
+                if(!allPoints[i].isRevealed) {
+                    allPoints[i].isRevealed = true;
+                    pArr[i*3+2] = allPoints[i].z_base;
+                    sArr[i] = 12.0;
+                    cArr[i*3] = allPoints[i].color.r;
+                    cArr[i*3+1] = allPoints[i].color.g;
+                    cArr[i*3+2] = allPoints[i].color.b;
+                }
+            }
+            cloudGeometry.attributes.position.needsUpdate = true;
+            cloudGeometry.attributes.color.needsUpdate = true;
+            cloudGeometry.attributes.size.needsUpdate = true;
+            domPercent.innerText = "100%"; domProgBar.style.width = "100%";
+            domTimer.innerText = "00:00";
+        }
+
+        function animate() {
+            requestAnimationFrame(animate);
+            if (!isInitialized) return;
+            const nowMs = Date.now();
+            const currentTime = nowMs * 0.001;
+
+            if (!isPaused && allPoints.length > 0) {
+                analyser.getByteFrequencyData(dataArray);
+                let sum = 0; for(let i=0; i<dataArray.length; i++) sum += dataArray[i];
+                audioAverage = sum / dataArray.length;
+                process3DRise(nowMs);
+                drawSpectrum();
+            }
+
+            if (pointCloud) {
+                const audioPulse = (audioAverage / 255);
+                pointCloud.material.uniforms.uAudioPulse.value = audioPulse;
+                const sArr = cloudGeometry.attributes.size.array;
+                const cArr = cloudGeometry.attributes.color.array;
+                const pArr = cloudGeometry.attributes.position.array;
+                
+                for(let i=0; i<allPoints.length; i++) {
+                    if (allPoints[i].isRevealed) {
+                        const age = currentTime - allPoints[i].revealTime;
+                        const decay = Math.max(0, 1.0 - age / 0.8);
+                        sArr[i] = 12.0 + (sArr[i] * decay * 0.15); 
+                        const colF = 1.0 + decay * 10.0;
+                        cArr[i*3] = allPoints[i].color.r * colF;
+                        cArr[i*3+1] = allPoints[i].color.g * colF;
+                        cArr[i*3+2] = allPoints[i].color.b * colF;
+                        pArr[i*3+2] = allPoints[i].z_base + Math.sin(currentTime * 8 + i) * audioPulse * 150;
+                    }
+                }
+                cloudGeometry.attributes.size.needsUpdate = true;
+                cloudGeometry.attributes.color.needsUpdate = true;
+                cloudGeometry.attributes.position.needsUpdate = true;
+            }
+
+            camera.position.x = Math.sin(currentTime * 0.04) * 4500;
+            camera.position.y = 1200 + Math.cos(currentTime * 0.03) * 800;
+            camera.position.z = 7500 + Math.cos(currentTime * 0.04) * 1500;
+            camera.lookAt(0, 0, 0);
+
+            renderer.render(scene, camera);
+        }
+
+        domPPIcon.addEventListener('click', () => {
+            isPaused = !isPaused;
+            domPPIcon.innerText = isPaused ? "▶" : "⏸";
+            domPPIcon.style.color = isPaused ? "#fff" : "var(--accent)";
+            if (!isPaused) startTime += (Date.now() - (this.pT || Date.now()));
+            else this.pT = Date.now();
+        });
+
+        document.getElementById('resetBtn').addEventListener('click', () => location.reload());
+        document.getElementById('startButton').addEventListener('click', () => initAudio());
+
+        window.onload = initThree;
+    </script>
+</body>
+</html>
