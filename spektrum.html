@@ -61,7 +61,7 @@
             justify-content: space-between;
         }
 
-        /* Raw Data Matrix Style */
+        /* Gaya Data Matrix Mentah */
         .data-matrix {
             padding: 20px;
             border-radius: 4px;
@@ -131,7 +131,7 @@
             box-shadow: 0 0 10px var(--accent);
         }
 
-        /* Signal Spectrum Styling */
+        /* Spektrum Signal */
         #spectrum-container {
             width: 100%;
             height: 60px;
@@ -150,7 +150,7 @@
     <div class="vignette"></div>
     
     <div class="hud-container">
-        <!-- Top Row: Real Data Mapping -->
+        <!-- Baris Atas: Pemetaan Data Real-Time -->
         <div class="flex justify-between items-start w-full">
             <div class="data-matrix glass">
                 <div>NODE_ID: <b id="v-node">IDLE_INIT</b></div>
@@ -166,7 +166,7 @@
             </div>
         </div>
 
-        <!-- Bottom Row: Spectrum & Controls -->
+        <!-- Baris Bawah: Spektrum & Kontrol -->
         <div class="flex flex-col items-center gap-4 w-full">
             <div id="spectrum-container">
                 <canvas id="v-spectrum"></canvas>
@@ -174,8 +174,9 @@
 
             <div class="flex flex-col items-center gap-6">
                 <div class="control-pill shadow-2xl">
-                    <div id="playPauseBtn" class="ctrl-btn" style="color: var(--accent)">⏸</div>
-                    <div id="resetBtn" class="ctrl-btn">↺</div>
+                    <div id="playPauseBtn" class="ctrl-btn" style="color: var(--accent)" title="Play/Pause">⏸</div>
+                    <div id="fullscreenBtn" class="ctrl-btn" title="Toggle Fullscreen">⛶</div>
+                    <div id="resetBtn" class="ctrl-btn" title="Reset">↺</div>
                 </div>
                 <div class="text-[6px] opacity-10 tracking-[15px] uppercase">Neural 90s Volumetric Mapping System</div>
             </div>
@@ -206,6 +207,7 @@
         /**
          * ENJIN: NEURAL 90S 3D SPECTRUM STEALTH DATA
          * Durasi konten diperpanjang menjadi 90 detik untuk visualisasi yang lebih mendalam.
+         * Ditambahkan fungsi Fullscreen untuk pengalaman imersif.
          */
         let scene, camera, renderer, analyser, dataArray;
         let isInitialized = false, isPaused = false;
@@ -229,6 +231,7 @@
         const domPercent = document.getElementById('v-percent');
         const domTimer = document.getElementById('v-timer');
         const domPPIcon = document.getElementById('playPauseBtn');
+        const domFullscreen = document.getElementById('fullscreenBtn');
         const specCanvas = document.getElementById('v-spectrum');
         const specCtx = specCanvas.getContext('2d');
 
@@ -281,7 +284,6 @@
                         }
                     }
                 }
-                // Urutan dari bawah ke atas
                 allPoints.sort((a, b) => a.y - b.y);
                 initThreeScene();
             };
@@ -390,7 +392,7 @@
                 const val = dataArray[freqIdx] / 255;
                 const barHeight = val * specCanvas.height;
 
-                // Symmetrical draw
+                // Simetris
                 specCtx.globalAlpha = 0.8 * (1 - i / (barsCount / 2));
                 specCtx.fillRect(center + i * (barWidth + barGap), specCanvas.height - barHeight, barWidth, barHeight);
                 specCtx.fillRect(center - i * (barWidth + barGap), specCanvas.height - barHeight, barWidth, barHeight);
@@ -527,6 +529,18 @@
             renderer.render(scene, camera);
         }
 
+        function toggleFullscreen() {
+            if (!document.fullscreenElement) {
+                document.documentElement.requestFullscreen().catch(err => {
+                    console.error(`Error attempting to enable fullscreen: ${err.message}`);
+                });
+            } else {
+                if (document.exitFullscreen) {
+                    document.exitFullscreen();
+                }
+            }
+        }
+
         domPPIcon.addEventListener('click', () => {
             isPaused = !isPaused;
             domPPIcon.innerText = isPaused ? "▶" : "⏸";
@@ -534,6 +548,8 @@
             if (!isPaused) startTime += (Date.now() - (this.pT || Date.now()));
             else this.pT = Date.now();
         });
+
+        domFullscreen.addEventListener('click', toggleFullscreen);
 
         document.getElementById('resetBtn').addEventListener('click', () => location.reload());
         document.getElementById('startButton').addEventListener('click', () => initAudio());
