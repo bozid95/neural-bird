@@ -1,12 +1,12 @@
 <!DOCTYPE html>
-<html lang="id">
+<html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>NEURAL GALAXY - IMMERSIVE SPACE</title>
-    <!-- Library Inti Three.js -->
+    <title>NEURAL GALAXY - TWINKLING SPACE</title>
+    <!-- Library Utama Three.js -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
-    <!-- Library UI (Tailwind) -->
+    <!-- Framework UI Tailwind -->
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
         :root {
@@ -21,6 +21,7 @@
             width: 100vw; 
             height: 100dvh; 
             user-select: none;
+            color: #ffaa00;
         }
         canvas { display: block; width: 100% !important; height: 100% !important; cursor: pointer; }
         
@@ -29,16 +30,16 @@
             top: 0; left: 0; width: 100%; height: 100dvh;
             display: flex; flex-direction: column;
             justify-content: center; align-items: center;
-            background: radial-gradient(circle, #050505 0%, #000 100%);
+            background: radial-gradient(circle at center, #0a0500 0%, #000 100%);
             color: white;
             z-index: 100;
-            transition: opacity 0.5s ease-in-out;
+            transition: opacity 0.4s ease-in-out;
         }
 
         .vignette {
             position: absolute;
             top: 0; left: 0; width: 100%; height: 100dvh;
-            box-shadow: inset 0 0 250px rgba(0,0,0,1);
+            box-shadow: inset 0 0 350px rgba(0,0,0,1);
             pointer-events: none;
             z-index: 5;
         }
@@ -51,50 +52,86 @@
             z-index: 60;
             padding-top: var(--safe-top);
             padding-bottom: var(--safe-bottom);
-            transition: opacity 0.5s cubic-bezier(0.4, 0, 0.2, 1), transform 0.5s ease;
+            transition: opacity 0.5s ease;
         }
 
-        .hud-hidden {
-            opacity: 0 !important;
-            pointer-events: none !important;
-            transform: scale(1.05);
+        .hud-hidden { opacity: 0 !important; }
+
+        /* TELEMETRY PANEL */
+        .telemetry-panel {
+            position: absolute;
+            top: calc(15px + var(--safe-top));
+            left: 15px;
+            pointer-events: none;
+            width: 160px;
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
         }
 
-        .control-panel {
-            background: rgba(255, 255, 255, 0.05);
+        .data-card {
+            background: rgba(10, 5, 0, 0.6);
             backdrop-filter: blur(15px);
-            border: 1px solid rgba(255, 255, 255, 0.1);
-            border-radius: 50px;
-            padding: 10px 25px;
+            border-left: 1px solid #ff4400;
+            padding: 10px;
+            font-size: 8px;
+            text-transform: uppercase;
+        }
+
+        .row { display: flex; justify-content: space-between; margin-bottom: 4px; }
+        .lbl { color: rgba(255, 255, 255, 0.2); letter-spacing: 0.5px; }
+        .val { color: #ffaa00; font-weight: bold; }
+
+        #coord-log {
+            font-size: 5.5px;
+            height: 40px;
+            overflow: hidden;
+            opacity: 0.4;
+            margin-top: 6px;
+            line-height: 1.3;
+            color: #ff4400;
+            border-top: 1px solid rgba(255, 68, 0, 0.05);
+            padding-top: 6px;
+        }
+
+        /* NAVIGATION */
+        .control-panel {
+            position: absolute;
+            bottom: calc(15px + var(--safe-bottom));
+            right: 15px;
+            background: rgba(255, 68, 0, 0.05);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 68, 0, 0.15);
+            border-radius: 40px;
+            padding: 6px 12px;
             display: inline-flex;
-            gap: 20px;
+            gap: 10px;
             pointer-events: auto;
         }
 
         .ctrl-btn {
-            color: rgba(255, 255, 255, 0.5);
-            font-size: 10px;
-            font-weight: bold;
-            letter-spacing: 1px;
+            color: rgba(255, 170, 0, 0.4);
+            font-size: 14px;
             cursor: pointer;
+            width: 28px;
+            height: 28px;
             display: flex;
             align-items: center;
-            gap: 6px;
-            transition: 0.3s;
+            justify-content: center;
+            transition: 0.2s;
         }
 
-        .ctrl-btn:hover { color: #fff; transform: translateY(-1px); }
-        .active-state { color: #00ffcc !important; text-shadow: 0 0 10px rgba(0,255,204,0.5); }
+        .ctrl-btn:hover { color: #fff; }
+        .active-state { color: #ffaa00 !important; }
 
         #toggle-ui-btn {
             position: absolute;
-            top: 40px;
-            right: 25px;
-            width: 45px;
-            height: 45px;
-            background: rgba(255, 255, 255, 0.05);
-            backdrop-filter: blur(10px);
-            border: 1px solid rgba(255, 255, 255, 0.1);
+            top: calc(15px + var(--safe-top));
+            right: 15px;
+            width: 35px;
+            height: 35px;
+            background: rgba(255, 255, 255, 0.02);
+            border: 1px solid rgba(255, 68, 0, 0.1);
             border-radius: 50%;
             display: flex;
             align-items: center;
@@ -102,169 +139,104 @@
             cursor: pointer;
             pointer-events: auto;
             z-index: 70;
-            color: white;
-            transition: 0.3s;
-        }
-        #toggle-ui-btn:hover { background: rgba(255, 255, 255, 0.15); transform: scale(1.1); }
-
-        /* Pesan status mengambang */
-        #status-msg {
-            position: absolute;
-            top: 100px; left: 50%;
-            transform: translateX(-50%);
-            color: #00ffcc;
-            font-size: 10px;
-            letter-spacing: 2px;
-            text-transform: uppercase;
-            opacity: 0;
-            pointer-events: none;
-            transition: opacity 0.3s;
-            z-index: 80;
-            background: rgba(0,0,0,0.8);
-            padding: 8px 16px;
-            border: 1px solid rgba(0,255,204,0.2);
-            border-radius: 20px;
-            white-space: nowrap;
+            color: rgba(255, 170, 0, 0.5);
         }
 
         #pause-indicator {
             position: absolute;
             top: 50%; left: 50%;
             transform: translate(-50%, -50%);
-            color: white;
-            font-size: 12px;
-            letter-spacing: 1em;
-            text-transform: uppercase;
+            color: #ff4400;
+            font-size: 9px;
+            letter-spacing: 1.2em;
             opacity: 0;
             pointer-events: none;
-            transition: opacity 0.3s;
             z-index: 55;
-            background: rgba(0,0,0,0.5);
-            padding: 10px 20px;
-            border-radius: 4px;
-            backdrop-filter: blur(5px);
+            background: rgba(0,0,0,0.9);
+            padding: 15px 30px;
+            border-left: 2px solid #ff4400;
         }
     </style>
 </head>
 <body>
-    <div id="toggle-ui-btn" onclick="toggleUI()" title="Sembunyikan/Tampilkan UI">👁️</div>
-    <div id="status-msg">Layar Penuh Diblokir - Mengaktifkan Mode Bersih</div>
-    <div id="pause-indicator">Sistem Berhenti</div>
+    <div id="toggle-ui-btn" onclick="toggleUI()">👁️</div>
+    <div id="pause-indicator">LINK_OFFLINE</div>
     <div class="vignette"></div>
     
     <div id="hud" class="hud-area">
-        <div class="absolute top-[8%] w-full text-center">
-            <div class="text-white/90 font-bold text-[14px] tracking-[0.8em] mb-1 uppercase">Galaksi Neural</div>
-            <div id="status-text" class="text-[7px] text-cyan-400/60 tracking-[1em]">PEMINDAI_AKTIF</div>
-            <div class="mt-6 flex justify-center">
-                <div class="control-panel">
-                    <div id="playPauseBtn" class="ctrl-btn active-state" onclick="togglePlayPause(event)">
-                        <span id="pp-icon">⏸</span> <span id="pp-text">HENTI</span>
-                    </div>
-                    <div id="fsBtn" class="ctrl-btn" onclick="toggleFullScreen(event)">
-                        <span>⛶</span> FULL
-                    </div>
-                    <div id="resetBtn" class="ctrl-btn" onclick="resetVisuals(event)">
-                        <span>↺</span> RESET
-                    </div>
-                </div>
+        <div class="telemetry-panel">
+            <div class="data-card">
+                <div class="row"><span class="lbl">STARS_SYNC</span> <span class="val">ACTIVE</span></div>
+                <div class="row"><span class="lbl">ACTIVE_CORES</span> <span id="v-nodes" class="val">000</span></div>
+                <div class="row"><span class="lbl">SIGNAL_INT</span> <span id="v-int" class="val">0.0%</span></div>
+                <div class="row"><span class="lbl">LIVE_COORD</span> <span id="v-coords-main" class="val">0 0 0</span></div>
+                <div id="coord-log">SPACE_LINK_ESTABLISHED...</div>
+            </div>
+            <div class="w-full h-[1.5px] bg-white/5 overflow-hidden rounded-full">
+                <div id="mic-level-bar" class="h-full bg-orange-600 w-0"></div>
             </div>
         </div>
-        <div class="absolute bottom-[15%] w-full flex flex-col items-center px-10">
-            <div id="mic-bar-container" class="w-full max-w-xs h-[1px] bg-white/10 mb-6 overflow-hidden rounded-full">
-                <div id="mic-level-bar" class="h-full bg-gradient-to-r from-cyan-500 to-purple-500 w-0"></div>
+
+        <div class="control-panel">
+            <div id="playPauseBtn" class="ctrl-btn active-state" onclick="togglePlayPause(event)">
+                <span id="pp-icon">⏸</span>
             </div>
-            <div class="text-[7px] tracking-[0.6em] text-white/30 uppercase text-center">Ketuk layar untuk mulai/henti • Mode Layar Penuh Dinamis</div>
+            <div id="fsBtn" class="ctrl-btn" onclick="toggleFullScreen(event)">
+                <span>⛶</span>
+            </div>
+            <div id="resetBtn" class="ctrl-btn" onclick="resetVisuals(event)">
+                <span>↺</span>
+            </div>
         </div>
     </div>
 
     <div id="overlay">
-        <div class="text-center px-10">
-            <h1 class="text-5xl font-thin tracking-[1.5em] mb-4 text-white uppercase ml-[1.5em]">Kosmos</h1>
-            <p class="text-[9px] tracking-[0.8em] text-cyan-400 mb-16 uppercase leading-loose">Visualisasi Data Real-time</p>
-            <button id="startButton" class="px-16 py-6 border border-cyan-500/40 rounded-full hover:bg-cyan-500 hover:text-black transition-all group">
-                <span class="text-[11px] font-bold tracking-[1.2em]">MULAI SCAN</span>
+        <div class="text-center px-6">
+            <h1 class="text-5xl font-thin tracking-[1.5em] mb-4 text-white uppercase ml-[1.5em]">Cosmos</h1>
+            <p class="text-[8px] tracking-[1em] text-orange-500 mb-16 uppercase">Stellar Twinkle Mapping System</p>
+            <button id="startButton" class="px-16 py-6 border border-orange-500/30 rounded-full hover:bg-orange-600 hover:text-black transition-all">
+                <span class="text-[10px] font-bold tracking-[1.2em]">IGNITE CORE</span>
             </button>
         </div>
     </div>
 
     <script>
+        /**
+         * LOGIK ENGINE - TWINKLING STARS & SLEEK TAILS
+         */
         let scene, camera, renderer, analyser, dataArray;
         let isInitialized = false, isPaused = false, uiVisible = true;
-        let coreGroup, starField;
-        let lastNodePos = new THREE.Vector3(0, 0, 0);
+        let starField, lastNodePos = new THREE.Vector3(0, 0, 0);
+        let logEntries = [];
+        let starMaterial; // Untuk shader kelap-kelip
         
         const nodePool = [];
         const linePool = [];
-        const haloPool = [];
+        const pulsePool = [];
         const activeNodes = [];
         const activeLines = [];
-        const activeHalos = [];
-        const POOL_SIZE = 400;
+        const activePulses = [];
+        const POOL_SIZE = 200; 
 
         const SCRATCH_V3 = new THREE.Vector3();
-        const PALETTE = [0x00ffcc, 0xff00ff, 0xffff00, 0x00ff00, 0xff3300, 0x00aaff, 0xffffff];
+        const PALETTE = [0xffaa00, 0xff4400, 0xff2200, 0xffffff, 0x00ffcc];
         
-        const NODE_GEO = new THREE.SphereGeometry(1, 12, 12);
+        const NODE_GEO = new THREE.SphereGeometry(1, 32, 32); 
+        const PULSE_GEO = new THREE.SphereGeometry(1, 16, 16);
         const LINE_GEO = new THREE.BufferGeometry();
         LINE_GEO.setAttribute('position', new THREE.Float32BufferAttribute([0,0,0, 0,0,0], 3));
-
-        function createHaloTexture() {
-            const canvas = document.createElement('canvas');
-            canvas.width = 128; canvas.height = 128;
-            const ctx = canvas.getContext('2d');
-            const gradient = ctx.createRadialGradient(64, 64, 0, 64, 64, 64);
-            gradient.addColorStop(0, 'rgba(255, 255, 255, 1)');
-            gradient.addColorStop(0.15, 'rgba(255, 255, 255, 0.7)');
-            gradient.addColorStop(0.4, 'rgba(255, 255, 255, 0.1)');
-            gradient.addColorStop(1, 'rgba(255, 255, 255, 0)');
-            ctx.fillStyle = gradient;
-            ctx.fillRect(0, 0, 128, 128);
-            return new THREE.CanvasTexture(canvas);
-        }
-        const HALO_TEX = createHaloTexture();
-
-        const CONFIG = {
-            threshold: 65,
-            smoothing: 0.0,      
-            maxLife: 6000,       
-            growthSpeed: 170.0,  
-            spreadDistance: 160.0,
-            orbitSpeed: 0.07,
-            baseRadius: 950
-        };
-
-        function showStatusMessage(text) {
-            const el = document.getElementById('status-msg');
-            el.innerText = text;
-            el.style.opacity = "1";
-            setTimeout(() => { el.style.opacity = "0"; }, 3000);
-        }
 
         function toggleUI() {
             uiVisible = !uiVisible;
             document.getElementById('hud').classList.toggle('hud-hidden', !uiVisible);
-            document.getElementById('toggle-ui-btn').innerText = uiVisible ? '👁️' : '🕶️';
         }
 
         function toggleFullScreen(e) {
             if (e) e.stopPropagation();
             const doc = document.documentElement;
-            
             if (!document.fullscreenElement) {
-                // Mencoba masuk ke mode layar penuh dengan dukungan berbagai browser
-                const requestFs = doc.requestFullscreen || doc.webkitRequestFullscreen || doc.mozRequestFullScreen || doc.msRequestFullscreen;
-                
-                if (requestFs) {
-                    requestFs.call(doc).catch(err => {
-                        console.warn("Izin layar penuh ditolak oleh kebijakan browser.");
-                        showStatusMessage("Layar penuh diblokir - Mengaktifkan Mode Bersih");
-                        if (uiVisible) toggleUI();
-                    });
-                } else {
-                    showStatusMessage("Layar penuh tidak didukung - Mengaktifkan Mode Bersih");
-                    if (uiVisible) toggleUI();
-                }
+                const reqFs = doc.requestFullscreen || doc.webkitRequestFullscreen || doc.mozRequestFullScreen || doc.msRequestFullscreen;
+                if (reqFs) reqFs.call(doc).catch(() => toggleUI());
             } else {
                 const exitFs = document.exitFullscreen || document.webkitExitFullscreen || document.mozCancelFullScreen || document.msExitFullscreen;
                 if (exitFs) exitFs.call(document);
@@ -275,34 +247,41 @@
             if (e) e.stopPropagation();
             isPaused = !isPaused;
             document.getElementById('pp-icon').innerText = isPaused ? '▶' : '⏸';
-            document.getElementById('pp-text').innerText = isPaused ? 'MULA' : 'HENTI';
             document.getElementById('pause-indicator').style.opacity = isPaused ? '1' : '0';
-            const status = document.getElementById('status-text');
-            status.innerText = isPaused ? "SISTEM_DIHENTIKAN" : "PEMINDAI_AKTIF";
         }
 
         function resetVisuals(e) {
             if (e) e.stopPropagation();
             activeNodes.forEach(n => { n.mesh.visible = false; n.label.visible = false; n.active = false; });
             activeLines.forEach(l => { l.mesh.visible = false; l.active = false; });
-            activeHalos.forEach(h => { h.mesh.visible = false; h.active = false; });
-            activeNodes.length = 0;
-            activeLines.length = 0;
-            activeHalos.length = 0;
+            activeNodes.length = 0; activeLines.length = 0;
             lastNodePos.set(0, 0, 0);
+            updateLog("STARK_SYSTEM_REBOOT...");
         }
 
-        function updateLabelTexture(sprite, x, y, z, color) {
+        function updateLog(msg) {
+            const el = document.getElementById('coord-log');
+            logEntries.unshift(`> ${msg}`);
+            if(logEntries.length > 3) logEntries.pop();
+            el.innerHTML = logEntries.join('<br>');
+        }
+
+        function updateHUD(intensity, pos) {
+            document.getElementById('v-nodes').innerText = activeNodes.length.toString().padStart(3, '0');
+            document.getElementById('v-int').innerText = ((intensity/255)*100).toFixed(1) + "%";
+            document.getElementById('v-coords-main').innerText = `${Math.round(pos.x/10)} ${Math.round(pos.y/10)} ${Math.round(pos.z/10)}`;
+        }
+
+        function updateLabel(sprite, x, y, z, colorHex) {
             const canvas = document.createElement('canvas');
             const ctx = canvas.getContext('2d');
-            canvas.width = 128; canvas.height = 64;
-            ctx.fillStyle = 'rgba(0,0,0,0.8)';
-            ctx.roundRect(0, 10, 128, 44, 10);
-            ctx.fill();
-            ctx.fillStyle = color;
-            ctx.font = 'bold 20px monospace';
+            canvas.width = 128; canvas.height = 48;
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            ctx.fillStyle = colorHex;
+            ctx.font = 'bold 22px monospace';
             ctx.textAlign = 'center';
-            ctx.fillText(`${Math.round(x/10)} ${Math.round(y/10)} ${Math.round(z/10)}`, 64, 40);
+            ctx.fillText(`${Math.round(x/10)} ${Math.round(y/10)} ${Math.round(z/10)}`, 64, 30);
+            if (sprite.material.map) sprite.material.map.dispose();
             sprite.material.map = new THREE.CanvasTexture(canvas);
             sprite.material.needsUpdate = true;
         }
@@ -313,78 +292,119 @@
                 const audioContext = new (window.AudioContext || window.webkitAudioContext)();
                 const source = audioContext.createMediaStreamSource(stream);
                 analyser = audioContext.createAnalyser();
-                analyser.fftSize = 128; 
-                analyser.smoothingTimeConstant = CONFIG.smoothing;
+                analyser.fftSize = 256; 
+                analyser.smoothingTimeConstant = 0.02;
                 source.connect(analyser);
                 dataArray = new Uint8Array(analyser.frequencyBinCount);
                 isInitialized = true;
                 document.getElementById('overlay').style.opacity = '0';
-                setTimeout(() => document.getElementById('overlay').style.display = 'none', 500);
-            } catch (err) { 
-                console.error(err); 
-            }
+                setTimeout(() => document.getElementById('overlay').style.display = 'none', 400);
+            } catch (err) { console.error(err); }
         }
 
         function initThree() {
             scene = new THREE.Scene();
-            camera = new THREE.PerspectiveCamera(70, window.innerWidth / window.innerHeight, 1, 20000);
+            camera = new THREE.PerspectiveCamera(85, window.innerWidth / window.innerHeight, 1, 25000);
+            
             renderer = new THREE.WebGLRenderer({ antialias: true, powerPreference: "high-performance" });
             renderer.setSize(window.innerWidth, window.innerHeight);
-            renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+            renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2)); 
             renderer.toneMapping = THREE.ReinhardToneMapping;
-            renderer.toneMappingExposure = 3.5; 
+            renderer.toneMappingExposure = 4.2; 
             document.body.appendChild(renderer.domElement);
+
+            const ambientLight = new THREE.AmbientLight(0xffffff, 0.3);
+            scene.add(ambientLight);
             
-            renderer.domElement.addEventListener('click', () => {
-                if(isInitialized) togglePlayPause();
-            });
+            const dirLight = new THREE.DirectionalLight(0xffffff, 1.2);
+            dirLight.position.set(100, 200, 100);
+            scene.add(dirLight);
 
-            coreGroup = new THREE.Group();
-            scene.add(coreGroup);
+            const camLight = new THREE.PointLight(0xffffff, 1.5, 1200);
+            camera.add(camLight);
+            scene.add(camera);
 
+            // SHADER UNTUK BINTANG KELAP KELIP
+            const vertexShader = `
+                attribute float size;
+                attribute float twinkleOffset;
+                varying float vTwinkle;
+                varying vec3 vColor;
+                void main() {
+                    vTwinkle = twinkleOffset;
+                    vColor = color;
+                    vec4 mvPosition = modelViewMatrix * vec4(position, 1.0);
+                    gl_PointSize = size * (300.0 / -mvPosition.z);
+                    gl_Position = projectionMatrix * mvPosition;
+                }
+            `;
+            const fragmentShader = `
+                uniform float uTime;
+                varying float vTwinkle;
+                varying vec3 vColor;
+                void main() {
+                    float twinkle = 0.6 + 0.4 * sin(uTime * 3.0 + vTwinkle);
+                    gl_FragColor = vec4(vColor, twinkle);
+                }
+            `;
+
+            const starCount = 15000;
             const starGeo = new THREE.BufferGeometry();
-            const starPos = [];
-            const starColors = [];
-            for(let i=0; i<8000; i++) {
-                starPos.push((Math.random()-0.5)*15000, (Math.random()-0.5)*20000, (Math.random()-0.5)*15000);
-                const r = 0.8 + Math.random() * 0.2;
-                const g = 0.8 + Math.random() * 0.2;
-                const b = 0.9 + Math.random() * 0.1;
-                starColors.push(r, g, b);
+            const positions = new Float32Array(starCount * 3);
+            const colors = new Float32Array(starCount * 3);
+            const sizes = new Float32Array(starCount);
+            const twinkleOffsets = new Float32Array(starCount);
+            
+            const palette = [0xffffff, 0x9db2ff, 0xffd2a1, 0x666666];
+            for(let i=0; i<starCount; i++) {
+                positions[i*3] = (Math.random()-0.5)*15000;
+                positions[i*3+1] = (Math.random()-0.5)*25000;
+                positions[i*3+2] = (Math.random()-0.5)*15000;
+                
+                const c = new THREE.Color(palette[Math.floor(Math.random()*palette.length)]);
+                colors[i*3] = c.r; colors[i*3+1] = c.g; colors[i*3+2] = c.b;
+                
+                sizes[i] = 1.0 + Math.random() * 2.5;
+                twinkleOffsets[i] = Math.random() * 100.0;
             }
-            starGeo.setAttribute('position', new THREE.Float32BufferAttribute(starPos, 3));
-            starGeo.setAttribute('color', new THREE.Float32BufferAttribute(starColors, 3));
-            const starMat = new THREE.PointsMaterial({ 
-                size: 1.5, 
-                vertexColors: true, 
-                transparent: true, 
-                opacity: 0.6,
-                sizeAttenuation: true
+            
+            starGeo.setAttribute('position', new THREE.BufferAttribute(positions, 3));
+            starGeo.setAttribute('color', new THREE.BufferAttribute(colors, 3));
+            starGeo.setAttribute('size', new THREE.BufferAttribute(sizes, 1));
+            starGeo.setAttribute('twinkleOffset', new THREE.BufferAttribute(twinkleOffsets, 1));
+            
+            starMaterial = new THREE.ShaderMaterial({
+                uniforms: { uTime: { value: 0.0 } },
+                vertexShader,
+                fragmentShader,
+                transparent: true,
+                vertexColors: true
             });
-            starField = new THREE.Points(starGeo, starMat);
+            
+            starField = new THREE.Points(starGeo, starMaterial);
             scene.add(starField);
 
+            const CONFIG = {
+                threshold: 28, orbitSpeed: 0.08, baseRadius: 650, peakScale: 18.0, stableScale: 6.0, pulseSpeed: 0.4
+            };
+
             for(let i=0; i<POOL_SIZE; i++) {
-                const mat = new THREE.MeshBasicMaterial({ color: 0xffffff, transparent: true });
+                const mat = new THREE.MeshStandardMaterial({ color: 0x222222, emissive: 0xffffff, emissiveIntensity: 3.0, metalness: 0.8, roughness: 0.2, transparent: true });
                 const mesh = new THREE.Mesh(NODE_GEO, mat);
-                mesh.visible = false;
-                coreGroup.add(mesh);
+                mesh.visible = false; scene.add(mesh);
                 const label = new THREE.Sprite(new THREE.SpriteMaterial({ transparent: true }));
-                label.visible = false;
-                label.scale.set(30, 15, 1);
-                coreGroup.add(label);
+                label.visible = false; label.scale.set(45, 17, 1); scene.add(label);
                 nodePool.push({ mesh, mat, label, active: false, time: 0, finalColor: new THREE.Color() });
 
-                const hMat = new THREE.SpriteMaterial({ map: HALO_TEX, transparent: true, blending: THREE.AdditiveBlending });
-                const halo = new THREE.Sprite(hMat);
-                halo.visible = false;
-                coreGroup.add(halo);
-                haloPool.push({ mesh: halo, mat: hMat, active: false, time: 0 });
+                const pMat = new THREE.MeshBasicMaterial({ color: 0xffaa00, transparent: true });
+                const pulse = new THREE.Mesh(PULSE_GEO, pMat);
+                pulse.visible = false; scene.add(pulse);
+                pulsePool.push({ mesh: pulse, mat: pMat, active: false, start: new THREE.Vector3(), end: new THREE.Vector3(), progress: 0 });
 
+                // Line: Kembalikan ke Ukuran Semula (Ramping)
                 const lMat = new THREE.LineBasicMaterial({ color: 0xffffff, transparent: true });
                 const lMesh = new THREE.Line(LINE_GEO.clone(), lMat);
-                lMesh.visible = false;
-                coreGroup.add(lMesh);
+                lMesh.visible = false; scene.add(lMesh);
                 linePool.push({ mesh: lMesh, mat: lMat, active: false, time: 0, finalColor: new THREE.Color() });
             }
 
@@ -395,141 +415,100 @@
             animate();
         }
 
-        function triggerNodeFlash(pos) {
-            const hObj = haloPool.find(h => !h.active) || haloPool[0];
-            hObj.active = true;
-            hObj.time = Date.now();
-            hObj.mesh.position.copy(pos);
-            hObj.mesh.visible = true;
-            hObj.mesh.scale.setScalar(100); 
-            hObj.mat.opacity = 1.0;
-            activeHalos.push(hObj);
+        function createActualNode(pos, color) {
+            const nodeObj = nodePool.find(n => !n.active) || nodePool[0];
+            nodeObj.active = true; nodeObj.time = Date.now(); nodeObj.finalColor.set(color);
+            nodeObj.mesh.position.copy(pos); nodeObj.mesh.visible = true;
+            nodeObj.mesh.scale.setScalar(18.0); // Node baru lebih kecil & teknikal
+            nodeObj.mat.emissive.set(0xffffff); nodeObj.mat.emissiveIntensity = 8.0; nodeObj.mat.opacity = 1.0;
+            nodeObj.label.visible = true; nodeObj.label.position.set(pos.x + 35, pos.y + 15, pos.z);
+            updateLabel(nodeObj.label, pos.x, pos.y, pos.z, `#${nodeObj.finalColor.getHexString()}`);
+            activeNodes.push(nodeObj);
+            updateLog(`CORE_LINK_${Math.round(pos.y)}`);
         }
 
         function spawnNode(intensity) {
             if (isPaused) return;
-            const colorIdx = Math.floor(Math.random() * PALETTE.length);
-            const targetColor = PALETTE[colorIdx];
-
-            SCRATCH_V3.set(
-                (Math.random()-0.5) * CONFIG.spreadDistance,
-                (Math.random()-0.5) * CONFIG.spreadDistance * 2.5,
-                (Math.random()-0.5) * CONFIG.spreadDistance
-            );
+            const targetColor = PALETTE[Math.floor(Math.random() * PALETTE.length)];
+            SCRATCH_V3.set((Math.random()-0.5) * 80, (Math.random()-0.5) * 260, (Math.random()-0.5) * 120);
             const newPos = lastNodePos.clone().add(SCRATCH_V3);
-            if(newPos.length() > 850) newPos.lerp(new THREE.Vector3(0,0,0), 0.6);
-
-            const now = Date.now();
-            triggerNodeFlash(newPos);
+            if(newPos.length() > 500) newPos.lerp(new THREE.Vector3(0,0,0), 0.75);
 
             if (activeNodes.length > 0) {
                 const lineObj = linePool.find(l => !l.active) || linePool[0];
-                lineObj.active = true;
-                lineObj.time = now;
-                lineObj.finalColor.set(targetColor);
+                lineObj.active = true; lineObj.time = Date.now(); lineObj.finalColor.set(0xff4400); 
                 lineObj.mesh.visible = true;
+                lineObj.mat.color.set(0xffffff); // Kilatan api putih saat baru
                 lineObj.mat.opacity = 1.0;
-                lineObj.mat.color.set(0xffffff); 
                 const posAttr = lineObj.mesh.geometry.attributes.position;
                 posAttr.setXYZ(0, lastNodePos.x, lastNodePos.y, lastNodePos.z);
                 posAttr.setXYZ(1, newPos.x, newPos.y, newPos.z);
                 posAttr.needsUpdate = true;
                 activeLines.push(lineObj);
-            }
 
-            const nodeObj = nodePool.find(n => !n.active) || nodePool[0];
-            nodeObj.active = true;
-            nodeObj.time = now;
-            nodeObj.finalColor.set(targetColor);
-            nodeObj.mesh.position.copy(newPos);
-            nodeObj.mesh.visible = true;
-            nodeObj.mesh.scale.setScalar((intensity/100) * 7.0); 
-            nodeObj.mat.opacity = 1.0;
-            nodeObj.mat.color.set(0xffffff); 
-            
-            nodeObj.label.visible = true;
-            nodeObj.label.position.set(newPos.x + 35, newPos.y + 15, newPos.z);
-            updateLabelTexture(nodeObj.label, newPos.x, newPos.y, newPos.z, `#${nodeObj.finalColor.getHexString()}`);
-            
-            activeNodes.push(nodeObj);
+                const pObj = pulsePool.find(p => !p.active) || pulsePool[0];
+                pObj.active = true; pObj.start.copy(lastNodePos); pObj.end.copy(newPos); pObj.progress = 0;
+                pObj.mesh.visible = true; pObj.color = targetColor;
+                activePulses.push(pObj);
+            } else {
+                createActualNode(newPos, targetColor);
+            }
             lastNodePos.copy(newPos);
+            updateHUD(intensity, newPos);
         }
 
         function animate() {
             requestAnimationFrame(animate);
             if (!isInitialized) return;
-            const now = Date.now();
-            const time = now * 0.001;
+            const now = Date.now(), time = now * 0.001;
+
+            // Update Twinkle Shader Time
+            if(starMaterial) starMaterial.uniforms.uTime.value = time;
 
             if (!isPaused) {
                 analyser.getByteFrequencyData(dataArray);
                 let max = 0;
-                for(let i=0; i<dataArray.length; i++) {
-                    if(dataArray[i] > max) max = dataArray[i];
-                }
-                document.getElementById('mic-level-bar').style.width = Math.min(100, (max / 110) * 100) + "%";
-                if (max > CONFIG.threshold) spawnNode(max);
+                for(let i=0; i<dataArray.length; i++) { if(dataArray[i] > max) max = dataArray[i]; }
+                document.getElementById('mic-level-bar').style.width = Math.min(100, (max / 120) * 100) + "%";
+                if (max > 28) spawnNode(max);
             }
 
-            const camRadius = CONFIG.baseRadius + Math.sin(time*0.3)*150;
-            camera.position.x = Math.sin(time * CONFIG.orbitSpeed) * camRadius;
-            camera.position.z = Math.cos(time * CONFIG.orbitSpeed) * camRadius;
-            camera.position.y = Math.sin(time * 0.15) * 350;
+            camera.position.x = Math.sin(time * 0.08) * (600 + Math.sin(time*0.4)*50);
+            camera.position.z = Math.cos(time * 0.08) * (600 + Math.sin(time*0.4)*50);
+            camera.position.y = Math.sin(time * 0.1) * 120;
             camera.lookAt(0,0,0);
 
-            starField.rotation.y += 0.0002;
-            starField.rotation.x += 0.0001;
+            starField.rotation.y += 0.0003;
 
-            for (let i = activeHalos.length - 1; i >= 0; i--) {
-                const h = activeHalos[i];
-                const age = now - h.time;
-                if (age > 250) {
-                    h.mesh.visible = false;
-                    h.active = false;
-                    activeHalos.splice(i, 1);
-                } else {
-                    h.mat.opacity = 1.0 - (age / 250);
-                    h.mesh.scale.setScalar(100 * (1.0 + age/150));
-                }
+            for (let i = activePulses.length - 1; i >= 0; i--) {
+                const p = activePulses[i]; p.progress += 0.4;
+                p.mesh.position.lerpVectors(p.start, p.end, p.progress);
+                p.mesh.scale.setScalar(12 + Math.sin(time * 50) * 6);
+                if (p.progress >= 1.0) { createActualNode(p.end, p.color); p.mesh.visible = false; p.active = false; activePulses.splice(i, 1); }
             }
 
             for (let i = activeNodes.length - 1; i >= 0; i--) {
-                const n = activeNodes[i];
-                const age = now - n.time;
-                const ratio = 1.0 - (age / CONFIG.maxLife);
-                if (age < 150) {
-                    n.mat.color.set(0xffffff);
-                } else {
-                    n.mat.color.lerp(n.finalColor, 0.1);
-                    n.mat.opacity = ratio;
-                    n.label.material.opacity = ratio;
-                    n.mesh.scale.setScalar(ratio * 5.5);
+                const n = activeNodes[i]; const age = now - n.time;
+                const ratio = 1.0 - (age / 4000);
+                const isLatest = (i === activeNodes.length - 1);
+                if (isLatest) { n.mat.emissive.set(0xffffff); n.mat.emissiveIntensity = 8.0; }
+                else { 
+                    n.mat.emissive.lerp(n.finalColor, 0.4); n.mat.emissiveIntensity = 3.5 * ratio; n.mat.opacity = ratio; n.label.material.opacity = ratio; 
+                    n.mesh.scale.setScalar(6.0 * ratio); // Pengecilan instan
                 }
-                if (ratio <= 0) {
-                    n.mesh.visible = false;
-                    n.label.visible = false;
-                    n.active = false;
-                    activeNodes.splice(i, 1);
-                }
+                if (ratio <= 0) { n.mesh.visible = false; n.label.visible = false; n.active = false; activeNodes.splice(i, 1); }
             }
 
             for (let i = activeLines.length - 1; i >= 0; i--) {
-                const l = activeLines[i];
-                const age = now - l.time;
-                const ratio = 1.0 - (age / (CONFIG.maxLife * 0.8));
-                if (age < 180) {
-                    l.mat.color.set(0xffffff);
-                } else {
-                    l.mat.color.lerp(l.finalColor, 0.05);
-                    l.mat.opacity = ratio;
-                }
-                if (ratio <= 0) {
-                    l.mesh.visible = false;
-                    l.active = false;
-                    activeLines.splice(i, 1);
-                }
+                const l = activeLines[i]; const age = now - l.time;
+                const ratio = 1.0 - (age / 3200);
+                const isLatest = (i === activeLines.length - 1);
+                if (isLatest) {
+                    if (age < 150) { l.mat.color.set(0xffffff); } else { l.mat.color.lerp(new THREE.Color(0xff4400), 0.2); }
+                    l.mat.opacity = 1.0;
+                } else { l.mat.color.lerp(l.finalColor, 0.15); l.mat.opacity = ratio * 0.5; }
+                if (ratio <= 0) { l.mesh.visible = false; l.active = false; activeLines.splice(i, 1); }
             }
-
             renderer.render(scene, camera);
         }
 
